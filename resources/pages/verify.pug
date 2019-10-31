@@ -1,0 +1,36 @@
+doctype html
+html(lang="en")
+	head
+		title Verify Account
+		meta(charset="UTF-8")
+		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
+		link(href="./public/style.css", rel="stylesheet", type="text/css")
+		link(rel="icon", type="image/png", href="./public/favicon.png")
+	body
+		header(class="header")
+			nav(class="navigation")
+				ul(class="navbar")
+					li(class="navbarOption ", style="float:left;")
+						a(class="navbarOptionLink", href="/")
+							img(src="./public/images/logoButton.png", style="height: 100%;")
+
+		div(class="registerloginsection", style="grid-template-columns: auto")
+			form(method="post", class="formbox")
+				h3 Verify your account to sign in
+				p We sent you an email with a 4 digit verification code, sign in with your email and password with that code to verify your account.
+				div(class="formboxDiv")
+					label(for="email") Email Address
+					input(name="email", type="email", required)
+				div(class="formboxDiv")
+					label(for="password") Password
+					input(name="password", type="password", required)
+				div(class="formboxDiv")
+					label(for="code") Verification Code
+					input(name="code", type="text", required)
+				div(style="text-align: center; ")
+					input(type="submit", formaction="/loggedin", value="Log in", style="width: 90%; text-align")
+				a(href="/login", style="text-align: center") 
+					p(style="font-size: 1rem;") Didn't get it? Want to have it resent?
+
+		hr
+		footer &copy; EstAIte Agents 2019

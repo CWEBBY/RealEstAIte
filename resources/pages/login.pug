@@ -1,0 +1,24 @@
+doctype html
+html(lang="en")
+	head
+		title=masterInfo.pageTitle
+		meta(charset="UTF-8")
+		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
+		link(href="./public/style.css", rel="stylesheet", type="text/css")
+		link(rel="icon", type="image/png", href="./public/favicon.png")
+	body
+		header(class="header", style="float: right;")
+			nav(class="navigation")
+				ul(class="navbar")
+					li(class="navbarOption ", style="float:left;")
+						a(class="navbarOptionLink", href="/") 
+							img(src="./public/images/logoButton.png", style="height: 100%;")
+					
+		form(method="post", action="/login", style="float: right;")
+			input(name="email", type="email", placeholer="Name", required)
+			input(name="password", type="password", placeholer="Password", required)
+			input(type="submit")
+			
+		a(href="/register") Not a member?
+		hr
+		footer &copy; EstAIte Agents 2019

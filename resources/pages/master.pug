@@ -1,0 +1,21 @@
+doctype html
+html(lang="en")
+	head
+		title=masterInfo.pageTitle
+		meta(charset="UTF-8")
+		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
+		link(href="./public/style.css", rel="stylesheet", type="text/css")
+		link(rel="icon", type="image/png", href="./public/favicon.png")
+	body
+		header(class="header")
+			nav(class="navigation")
+				ul(class="navbar")
+					li(class="navbarOption ", style="float:left;")
+						a(class="navbarOptionLink", href="/") 
+							img(src="./public/images/logoButton.png", style="height: 100%;")
+					li(class="navbarOption")
+						a(class="navbarOptionLink", href="/loginorregister")=masterInfo.accountButtonTitle
+					
+		block pageContent
+		hr
+		footer &copy; EstAIte Agents 2019

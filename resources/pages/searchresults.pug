@@ -1,0 +1,17 @@
+extends master
+block pageContent
+	
+			
+		
+		div(class="listings", style="margin-left:25%; margin-right:25%; width: 50%;")
+			each val, key in listings
+				div(class="tile")
+					each mediaObject in val.media
+						-var isImage = mediaObject.category == "image"
+						if isImage
+							img(src=mediaObject.url, style="width:100%")
+							-break;
+					div(class="tileInfo")
+						h3=val.priceDetails.displayPrice
+						h4=val.addressParts.displayAddress
+						p= "Beds: " + val.bedrooms + " | " + "Bathrooms: " + val.bathrooms + " | " + "Cars: " + val.carspaces
