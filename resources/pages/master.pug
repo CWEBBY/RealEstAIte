@@ -4,18 +4,38 @@ html(lang="en")
 		title=masterInfo.pageTitle
 		meta(charset="UTF-8")
 		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
+		script(src="./public/script.js")
 		link(href="./public/style.css", rel="stylesheet", type="text/css")
 		link(rel="icon", type="image/png", href="./public/favicon.png")
 	body
+		noscript() 
+			br
+			br
+			h1 Error! 
+			h1 You need to enable JavaScript to use basic site functions. Please enable to fix errors that are going to occur if you continue on.
+			h2 -The Real Estaite Team
 		header(class="header")
 			nav(class="navigation")
 				ul(class="navbar")
-					li(class="navbarOption ", style="float:left;")
-						a(class="navbarOptionLink", href="/") 
-							img(src="./public/images/logoButton.png", style="height: 100%;")
-					li(class="navbarOption")
-						a(class="navbarOptionLink", href="/loginorregister")=masterInfo.accountButtonTitle
-					
+					li(class="navbarOption", style="float:left;")
+						a(class="navbarOptionLink navigationHomeOption", href="/") 
+							img(src="./public/images/logoButton.png", style="height: 100%;", class="navigationButton")
+					if (!masterInfo.linksBlocked)
+						li(class="navbarOption")
+							a(class="navbarOptionLink", id="navbarProfileOptionLink", href="javascript:void(0)", onclick="ToggleProfileMenu()")
+								img(src="./public/images/profile.png", style="height: 100%; margin: .5rem .5rem;",  class="navigationButton mobileExclusive")
+								ul(class="navbarOptionLink navigationProfileOption desktopExclusive", style="list-style-type: none; pointer-events: none;")
+									li My Account
+		
+			if (!masterInfo.linksBlocked)
+				div(class="profileSideMenu", id="profileSideMenu")
+					if (masterInfo.anonSession)
+						a(class="profileSideMenuOptionLink", href="/loginorregister", style="font-size: 1.25rem; padding-top: 1rem;") Log In / Register
+					else
+						a(class="profileSideMenuOptionLink", href="/profile") Profile
+						a(class="profileSideMenuOptionLink", href="/logout") Log Out						
+						
 		block pageContent
-		hr
-		footer &copy; EstAIte Agents 2019
+		br
+		footer &copy; Real Estaite. 
+			a(href="/policy") Privacy Policy

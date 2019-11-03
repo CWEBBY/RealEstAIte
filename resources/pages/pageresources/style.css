@@ -1,15 +1,20 @@
-﻿body, html {
+body, html {
 	min-height: 100vh;
 	min-width: 320px;
 	width: 100%;
 	margin: 0;
 	font-family: sans-serif, Geneva, Tahoma ;
+	overflow-x: hidden;
+}
+
+.policySection {
+
 }
 
 .header{
-	position: sticky;
+	position: fixed;
 	top: 0;
-	z-index: 100;
+	z-index: 9999;
 	width: 100%;
 }
 
@@ -19,6 +24,55 @@
 	padding: 0;
 	margin: 0;
 	border-bottom: .125rem solid rgb(228,48,48);
+}
+
+.navigationProfileOption:hover {
+	background-color: rgb(25,25,25)
+}
+
+.navigationProfileOption {
+	padding: .5rem .25rem;
+}
+
+.navigationHomeOption {
+	padding: .5rem .25rem;
+}
+
+.profileSideMenu {
+	position: absolute;
+	display: none;
+	right: 0;
+	min-width: 10rem;
+	background-color: rgb(228,48,48);
+	border-left: .125rem solid rgb(228,48,48);
+	border-bottom: .125rem solid rgb(228,48,48);
+}
+
+.profileSideMenuOptionLink {
+  display: block;
+  color: white;
+  text-align: center;
+	height: 2rem;
+	padding: .5rem .5rem;
+	font-size: 1.6rem;
+  text-decoration: none;
+	border-bottom: .125rem solid rgb(255,96,96);
+}
+
+.profileSideMenuOptionLink:hover {
+  background-color: rgb(255,96,96)
+}
+
+.navigationButton{
+	height: 100%;
+}
+
+.mobileExclusive {
+	display: none;
+}
+
+.desktopExclusive {
+	display: block;
 }
 
 .navbar {
@@ -40,7 +94,7 @@
   color: white;
   text-align: center;
 	height: 2rem;
-	padding: .5rem .5rem;
+	min-width: 10rem;
 	font-size: 1.6rem;
   text-decoration: none;
 }
@@ -52,6 +106,7 @@
 
 .banner {/*Needs to change*/
 	min-height: 70vh;
+	border-bottom: .2rem solid black;
 	background-attachment: fixed;
 	background-position: center;
 	background-repeat: no-repeat;
@@ -67,14 +122,14 @@
 	background-repeat: no-repeat;
 	background-size: cover;
 	background-image: url("./images/indexBannerBackground.png");
-  padding: 5% 5%;
+  padding: 7.5% 5%;
 	min-height: 100%;
 }
 
 .registerloginsection input{
 	width: 100%;
   padding: 0rem 0rem;
-	font-size: 1.5rem;
+	font-size: 1.25rem;
 	padding: .5rem 0rem;
   margin: 0rem 0;
   box-sizing: border-box;
@@ -82,11 +137,21 @@
 	top: 0;
 }
 
+.button {
+  background-color: rgb(228,48,48);
+  border: none;
+  color: white;
+  padding: 15px 32px;
+	border-radius: .25rem;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 1rem;
+}
+
 .registerloginsection label{
 	color: grey;
-	position: absolute;
-	z-index: 100;
-	pointer-events: none;
+	font-size: 1rem;
 	padding: .5rem .25rem;
 }
 
@@ -117,24 +182,46 @@
 
 
 @media screen and (max-width: 1200px) {/*Probably tablet*/
-	.navbar {
-	  background-color: rgba(0,0,255,1);
-	}
+
 }
 
 @media screen and (max-width: 720px) {/*Probably phone*/
-	.navbar {
-	  background-color: rgba(255,0,0,1);
+	.profileSideMenu {
+		left: 0;
+		min-width: 100%;
+	}
+
+	.navbarOptionLink {
+	  display: block;
+	  color: white;
+	  text-align: center;
+		height: 2rem;
+		min-width: 100%;
+		font-size: 1.6rem;
+	  text-decoration: none;
+	}
+
+	.navbarOptionLink:hover {
+	  border-top: 0rem solid white;
+		margin-bottom: 0rem;
+	}
+
+	.mobileExclusive {
+		display: block;
+	}
+
+	.desktopExclusive {
+		display: none;
 	}
 
 	.registerloginsection {
 	  display: block;
-	  padding: 5% 5%;
+	  padding: 2% 5%;
 	}
 
 	.formbox {
 	  background-color: rgba(255, 255, 255, 0.8);
-	  border-radius: 1rem;
+	  border-radius: .5rem;
 	  font-size: 1.5rem;
 		text-align: left;
 		padding: 1% 2rem;
@@ -155,7 +242,5 @@
 }
 
 @media screen and (max-width: 480px) {/*Probably worst case*/
-	.navbar {
-	  background-color: rgba(0,255,0,1);
-	}
+	/*being honest, not sure how to optimise for old stuff*/
 }

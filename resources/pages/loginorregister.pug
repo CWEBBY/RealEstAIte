@@ -1,57 +1,59 @@
-doctype html
-html(lang="en")
-	head
-		title=masterInfo.pageTitle
-		meta(charset="UTF-8")
-		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
-		link(href="./public/style.css", rel="stylesheet", type="text/css")
-		link(rel="icon", type="image/png", href="./public/favicon.png")
-	body
-		header(class="header")
-			nav(class="navigation")
-				ul(class="navbar")
-					li(class="navbarOption ", style="float:left;")
-						a(class="navbarOptionLink", href="/")
-							img(src="./public/images/logoButton.png", style="height: 100%;")
+extends master
 
+block pageContent
 		div(class="registerloginsection")
 			form(method="post", class="formbox")
-				h3 Create an account...
+				h3 Create an account
 				div(class="formboxDiv formBoxName", style="padding-right: 2%;")
-					label(for="givenName") First Name
-					input(name="givenName", type="text", required)
+					if (formInfo.registraionErrors.firstEmpty)
+						label(style="color: red; font-weight: bold;", for="givenName") Invalid first name
+					input(name="givenName", type="text", placeholder="First Name", required)
 				div(class="formboxDiv formBoxName")
-					label(for="surname") Last Name
-					input(name="surname", type="text", required)
+					if (formInfo.registraionErrors.lastEmpty)
+						label(style="color: red; font-weight: bold;", for="surname") Invalid last name
+					input(name="surname", type="text", placeholder="Surname", required)
 				div(class="formboxDiv")
-					label(for="email") Email Address
-					input(name="email", type="email", required)
+					if (formInfo.registraionErrors.emailAlreadyExists)
+						label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
+					else if (formInfo.registraionErrors.emailNotValid)
+						label(style="color: red; font-weight: bold;", for="email") Email address not valid
+					input(name="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					label(for="dob") Age
-					input(name="dob", type="text", required)
+					if (formInfo.registraionErrors.notOldEnough)
+						label(style="color: red; font-weight: bold;", for="dob") You need to be over 18 years old
+						br
+					label(for="dob", style="font-size: 1.25rem;") Date of Birth: 
+					input(name="dob", type="date", placeholder="Date of Birth", required, style="max-width: 100%; text-align: center")
 				div(class="formboxDiv")
-					label(for="password") Password
-					input(name="password", type="password", required)
+					if (formInfo.registraionErrors.passwordTooShort)
+						label(style="color: red; font-weight: bold;", for="password") Password is invalid
+					input(name="password", type="password", placeholder="Password (Min. 8 characters)", required)
 				div(class="formboxDiv")
-					label(for="confirmPassword") Confirm Password
-					input(name="confirmPassword", type="password", required, style="width: 100%;  position: relative; top: 0;")
+					if (formInfo.registraionErrors.passwordNotConfirmed)
+						label(style="color: red; font-weight: bold;", for="confirmPassword") Passwords do not match
+					input(name="confirmPassword", type="password", placeholder="Confirm Password" required)
+				div(class="formboxDiv", style="text-align: center")
+					label(for="policyConsent") By checking this box you agree to our Privacy Policy
+					input(name="policyConsent", type="checkbox", value="agreed" required)
+				a(href="/policy", style="text-align: center") 
+						p(style="font-size: 1rem;") Read our Privacy Policy here 
 				div(style="text-align: center;")
-					input(type="submit", formaction="/registered", value="Register", style="width: 90%; text-align")
+					input(type="submit", formaction="/register", class="button", value="Register", style="width: 90%; text-align")
 				
 			div(class="grid-item", style="background-color: rgba(0,0,0,0);")
-				
 			form(method="post", class="formbox")
-				h3 Or log in
+				h3 ...or log in
 				div(class="formboxDiv")
-					label(for="email") Email Address
-					input(name="email", type="email", required)
+					if (formInfo.loginErrors.emailNotValid)
+						label(style="color: red; font-weight: bold;", for="password") Email not valid
+					else if (formInfo.loginErrors.emailNotRegistered)
+						label(style="color: red; font-weight: bold;", for="password") No account with that email
+					input(name="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					label(for="password") Password
-					input(name="password", type="password", required)
-				div(style="text-align: center; ")
-					input(type="submit", formaction="/loggedin", value="Log in", style="width: 90%; text-align")
+					if (formInfo.loginErrors.passwordIncorrect)
+						label(style="color: red; font-weight: bold;", for="password") Password is incorrect
+					input(name="password", type="password", placeholder="Password", required)
+				div(style="text-align: center;")
+					input(type="submit", formaction="/login", class="button", value="Log In", style="width: 90%; text-align")
 				a(href="/login", style="text-align: center") 
 					p(style="font-size: 1rem;") Already a member but forgot your password?
-
-		hr
-		footer &copy; EstAIte Agents 2019

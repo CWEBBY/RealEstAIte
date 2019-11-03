@@ -1,17 +1,19 @@
+const debug = require("./debug");
 //presentationLayer.js, cw.
 //Modules-----------------------------------------------------
 //-Built in
-//An effort has been made to keep these includes interface level.
 const express = require("express");
 const session = require("express-session");
+const expressValidator = require("express-validator");
 const path = require("path");
 const bodyParser = require('body-parser');
+
 //-Custom
 const statics = require("./statics");
 const logicLayer = require("./logicLayer");
+
 //-Instances
 var server = express();
-//A dashboard for database admin. PENDING WHERE ELIZABETH+CHRIS DECIDE TO HOST.VVV
 //var admin = express();
 
 //Middleware-----------------------------------------------------
@@ -26,21 +28,19 @@ server.use(session({
   saveUninitialized: false,
   cookie: {
     sameSite: true,
-    secure: false//Needs HTTPS.
+    secure: false//Needs HTTPS for true. Don't have certificate.
   },
 }));
-server.use(bodyParser.urlencoded(
-  {
-    extended: true
-  }
-));
+server.use(expressValidator());
+server.use(bodyParser.urlencoded({extended: true}));
 server.use("/public", express.static(path.join(__dirname, statics.HTTP_PUBLIC_DIR)));
 
 //Requests-----------------------------------------------------
 //-General
-function SessionUsersName(key)
+function SessionUsersName(session)
 {
-  return logicLayer.GetUserByID(key);
+  if (session.userID) {return "My Account";}
+  else {return "Log In / Register";}
 }
 
 server.get(
@@ -48,7 +48,10 @@ server.get(
   function (req, res) {
     //
     var masterPageObject = {};
-    if (SessionedUserCheck(req.session)) {masterPageObject.accountButtonTitle= SessionUsersName(req.session.userID).givenName;}
+    if (SessionedUserCheck(req.session))
+    {
+      masterPageObject.anonSession = false;
+    }
 
     res.render(
       "index",
@@ -60,95 +63,505 @@ server.get(
 )
 
 //-User stuff
+//Gets
 server.get(
   "/loginorregister",
   function (req, res) {
+    var masterInfoObject = {};
+    var qStringErrors = {};
 
+    //Refactor this later
+    var qString = req.query;
+    qStringErrors = {
+      registraionErrors : {
+        notOldEnough: false,
+        lastEmpty: false,
+        firstEmpty: false,
+        emailAlreadyExists: false,
+        emailNotValid: false,
+        passwordNotConfirmed: false,
+        passwordTooShort: false
+      },
+      loginErrors : {
+        emailNotRegistered: false,
+        emailNotValid: false,
+        passwordIncorrect: false
+      }
+    }
+
+    if (qString.hasOwnProperty("validationError"))
+    {
+      qString = qString.validationError;
+      //This runaround is due to the fact that PugJS's in-script syntax doesn't allow for more elegant checking. It basically wants bools. Will Refactor later.
+      if (qString.includes("ageNotEnough")) {qStringErrors.registraionErrors.notOldEnough = true;}
+      if (qString.includes("lnameEmpty")) {qStringErrors.registraionErrors.lastEmpty = true;}
+      if (qString.includes("fnameEmpty")) {qStringErrors.registraionErrors.firstEmpty = true;}
+      if (qString.includes("emailAlreadyExists")) {qStringErrors.registraionErrors.emailAlreadyExists = true;}
+      if (qString.includes("emailNotValid")) {qStringErrors.registraionErrors.emailNotValid = true;}
+      if (qString.includes("passwordNotSame")) {qStringErrors.registraionErrors.passwordNotConfirmed = true;}
+      if (qString.includes("passwordTooShort")) {qStringErrors.registraionErrors.passwordTooShort = true;}
+    }
+    else if (qString.hasOwnProperty("verificationError"))
+    {
+      qString = qString.verificationError;
+      //This runaround is due to the fact that PugJS's in-script syntax doesn't allow for more elegant checking. It basically wants bools. Will Refactor later.
+      if (qString.includes("emailNotRegistered")) {qStringErrors.loginErrors.emailNotRegistered = true;}
+      if (qString.includes("emailNotValid")) {qStringErrors.loginErrors.emailNotValid = true;}
+      if (qString.includes("passwordIncorrect")) {qStringErrors.loginErrors.passwordIncorrect = true;}
+    }
+
+    masterInfoObject.linksBlocked = true;
     res.render(
       "loginorregister",
       {
-        masterInfo: GetMasterInfo(),
+        masterInfo: GetMasterInfo(masterInfoObject),
+        formInfo: qStringErrors
       }
     );
-  }
-)
-
-server.post(
-  "/registered",
-  function (req, res) {
-    if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
-    //else if (!RegisterValidationCheck(req.body.email, req.body.password, req.body.dob)) {res.redirect("/register?");}//Qstring needed
-    else
-    {
-      logicLayer.AddUser(req.body.givenName, req.body.surname, req.body.dob, req.body.email, req.body.password);
-      res.redirect("/verify");
-      console.log("Worked")
-    }
   }
 )
 
 server.get(
   "/verify",
   function (req, res) {
+
+    var qString = req.query;
+    var queryErrors = {
+      validation: {
+        emailNotUsed: false,
+        emailNotValid: false,
+        passwordNotValid: false,
+        codeNotCorrect: false
+      }
+    }
+
+    if (qString.hasOwnProperty("verificationError"))
+    {
+      qString = qString.verificationError;
+      if (qString.includes("emailNotRegistered")) {queryErrors.validation.emailNotUsed = true;}
+      if (qString.includes("emailNotValid")) {queryErrors.validation.emailNotValid = true;}
+      if (qString.includes("passwordIncorrect")) {queryErrors.validation.passwordNotValid = true;}
+      if (qString.includes("wrongCode") || qString.includes("codeNotValid")) {queryErrors.validation.codeNotCorrect = true;}
+    }
     res.render(
       "verify",
       {
         masterInfo: GetMasterInfo(),
+        validationInfo: queryErrors.validation
       }
     );
   }
 )
 
-//CONFIRM PASSWORD
-/*server.post(
-  "/loginorregister",
+server.get(
+  "/reverify",
   function (req, res) {
-    if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
-    //else if (!RegisterValidationCheck(req.body.email, req.body.password, req.body.dob)) {res.redirect("/register?");}//Qstring needed
+
+    var qString = req.query;
+    var queryErrors = {
+      validation: {
+        emailNotUsed: false,
+        emailNotValid: false,
+      }
+    }
+
+    if (qString.hasOwnProperty("verificationError"))
+    {
+      qString = qString.verificationError;
+      if (qString.includes("emailNotRegistered")) {queryErrors.validation.emailNotUsed = true;}
+      if (qString.includes("emailNotValid")) {queryErrors.validation.emailNotValid = true;}
+    }
+
+    res.render(
+      "reverify",
+      {
+        masterInfo: GetMasterInfo(),
+        validationInfo: queryErrors
+      }
+    );
+  }
+)
+
+server.get(
+  "/profile",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))
+    {
+      var user = logicLayer.GetUser(req.session.userID);
+      var qString = req.query;
+      var qMessages = {
+        saved: false
+      };
+      var qErrors = {
+        fnameInvalid: false,
+        lnameInvalid: false,
+        emailAlreadyExists: false,
+        emailInvalid: false,
+        notOldEnough: false,
+      }
+
+      if (qString.hasOwnProperty("validationError"))
+      {
+        qString = qString.validationError;
+        if (qString.includes("emailAlreadyExists")) {qErrors.emailAlreadyExists = true;}
+        if (qString.includes("emailNotValid")) {qErrors.emailNotValid = true;}
+        if (qString.includes("lnameEmpty")) {qErrors.lnameInvalid = true;}
+        if (qString.includes("fnameEmpty")) {qErrors.fnameInvalid = true;}
+        if (qString.includes("ageNotEnough")) {qErrors.ageNotEnough = true;}
+      }
+      else if (qString.hasOwnProperty("message"))
+      {
+        qString = qString.message;
+        if (qString.includes("saved")) {qMessages.saved = true;}
+      }
+
+      var userInfo = {
+        fname: user.givenName,
+        lname: user.surname,
+        email: user.email,
+        dob: user.dob
+      }
+      res.render(
+        "profile",
+        {
+          masterInfo: GetMasterInfo({}),
+          userInfo: userInfo,
+          validationInfo: qErrors,
+          messageInfo: qMessages
+        }
+      );
+    }
     else
     {
-      logicLayer.AddUser(req.body.givenName, req.body.surname, req.body.dob, req.body.email, req.body.password);
-      res.redirect("/verify");
-      console.log("Worked")
+      res.redirect("/");
     }
   }
-)*/
+)
+
+server.get(
+  "/logout",
+  function (req, res) {
+    if (SessionedUserCheck(req.session)) {req.session.destroy();}
+    res.redirect("/");
+  }
+)
+
+server.get(
+  "/policy",
+  function (req, res) {
+    res.render(
+      "policy",
+      {
+        masterInfo: GetMasterInfo({}),
+      }
+    );
+  }
+)
+
+//Posts
+server.post(
+  "/register",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
+    else
+    {
+      //Down the validation chain, none of this is sanitized, this could come later, I'd say there are bigger issues in implementation like session storage first.
+      //Not good still, if we are storing passwords as well.
+      var errorReport = {flag: false, string: ""};
+      errorReport = ValidateNewName(errorReport, req.body.givenName, req.body.surname);
+      errorReport = ValidateNewEmail(errorReport, req.body.email);
+      errorReport = ValidateAge(errorReport, CalculateAge(req.body.dob.split("-")));
+      errorReport = ValidateNewPassword(errorReport, req.body.password, req.body.confirmPassword);
+      //NODEJS has a big problem with checkboxes for some reason, this means that policy consent is checked on the client, only reason wouldn't be valid is if client was toying with the html.
+      //This is the reason, that is, toying with the page on the client side, that validation is done server side.
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/loginorregister"+errorReport.string);
+      }
+      else
+      {
+        logicLayer.AddUser({
+          givenName: req.body.givenName,
+          surname: req.body.surname,
+          dob: req.body.dob,
+          email: req.body.email,
+          password: req.body.password
+        });
+        logicLayer.SendUserVerification(logicLayer.GetUserKey({email: req.body.email})); //Not sure of the async of this, may break if it takes time to add user to database.
+        res.redirect("/verify");
+      }
+    }
+  }
+)
+
+server.post(
+  "/login",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
+    else
+    {
+      //Down the validation chain
+      var errorReport = {flag: false, string: ""};
+      errorReport = VerifyLogin(errorReport, req.body.email, req.body.password);
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/loginorregister"+errorReport.string);
+      }
+      else
+      {
+        var key = logicLayer.GetUserKey({email:req.body.email});
+        if (logicLayer.ConfirmVerified(key))
+        {
+          req.session.userID = key;
+          res.redirect("/");
+        }
+        else { res.redirect("/verify"); }
+      }
+    }
+  }
+)
 
 server.post(
   "/verify",
   function (req, res) {
     if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
-    //else if (!RegisterValidationCheck(req.body.email, req.body.password, req.body.dob)) {res.redirect("/register?");}//Qstring needed
     else
     {
-      logicLayer.AddUser(req.body.givenName, req.body.surname, req.body.dob, req.body.email, req.body.password);
-      res.redirect("/verify");
+      //Down the validation chain
+      var key = logicLayer.GetUserKey({email:req.body.email});
+      var errorReport = {flag: false, string: ""};
+      errorReport = VerifyLogin(errorReport, req.body.email, req.body.password);
+      errorReport = VerifyVerification(errorReport, key, req.body.code)
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/verify"+errorReport.string);
+      }
+      else
+      {
+        if (logicLayer.ConfirmUser(key, req.body.code))
+        {
+          req.session.userID = key;
+          res.redirect("/");
+        }
+      }
     }
   }
 )
 
-//Move these
+server.post(
+  "/saveprofile",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))
+    {
+      //Down the validation chain, none of this is sanitized, this could come later, I'd say there are bigger issues in implementation like session storage first.
+      var errorReport = {flag: false, string: ""};
+      errorReport = ValidateNewName(errorReport, req.body.fname, req.body.lname);
+      //TO DO: Check if old emaill is still in use...
+      errorReport = ValidateNewEmail(errorReport, req.body.email);
+      errorReport = ValidateAge(errorReport, CalculateAge(req.body.dob.split("-")));
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/profile"+errorReport.string);
+      }
+      else
+      {
+        logicLayer.UpdateUser(req.session.userID, {fname:req.body.fname, lname:req.body.lname, dob:req.body.dob, email:req.body.email});
+        res.redirect("/profile?message=saved");
+      }
+    }
+    else {res.redirect("/");}
+  }
+)
+
+server.post(
+  "/reverify",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))  {res.redirect("/");}  //Just incase users hit the URL
+    else
+    {
+      var errorReport = {flag: false, string: ""};
+      errorReport = VerifyEmail(errorReport, req.body.email);
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/reverify"+errorReport.string);
+      }
+      else
+      {
+        logicLayer.SendUserVerification(logicLayer.GetUserKey({email: req.body.email}));
+        res.redirect("/reverify");
+      }
+    }
+  }
+)
+
 function SessionedUserCheck (session)
 {
-  if (!session.userID) {return false;}
-  return true;
-}
-
-function RegisterValidationCheck ()
-{
-    //Form validation and check for account prior
+  if (!session.hasOwnProperty("userID")) {return false;}
   return true;
 }
 
 //Functions-----------------------------------------------------
-var GetMasterInfo = function(masterInfoObject = {})
+function GetDateString()
 {
-  return (
+  var time = new Date();
+  var year = time.getFullYear();
+  var month = time.getMonth()+1;
+  var day = time.getDate();
+  var dateString = year + "-" + month + "-" + day;
+  return dateString;
+}
+
+function CalculateAge(dob)
+{
+  var now = new Date();
+  var nowString = now.getDate().toString();
+  if (nowString.length == 1) {nowString = "0"+nowString;}
+  nowString+= "/" + (now.getMonth()+1).toString();
+  nowString+= "/" + now.getFullYear().toString();
+  if (dob[1].length == 1) {dob[1] = "0"+dob[1]}
+  var dobString = dob[1] + "/" + dob[2] + "/" + dob[0];
+
+  var dobDate = new Date(dobString);
+  var nowDate = new Date(nowString);
+
+  return (((nowDate.getTime() - dobDate.getTime()) / (1000 * 3600 * 24)) /365.25);
+}
+
+function GetMasterInfo(masterInfoObject = {})
+{
+  var masterInfo = {};
+
+  if (masterInfoObject.hasOwnProperty("anonSession")){masterInfo.anonSession = masterInfoObject.anonSession;}
+  else {masterInfo.anonSession = true;}
+
+  if (masterInfoObject.hasOwnProperty("linksBlocked")){masterInfo.linksBlocked = masterInfoObject.linksBlocked;}
+  else {masterInfo.linksBlocked = false;}
+
+  if (masterInfoObject.hasOwnProperty("pageTitle")){masterInfo.pageTitle = masterInfoObject.pageTitle;}
+  else {masterInfo.pageTitle = "Real Est(ai)te | The good solution to real estate";}
+
+  return (masterInfo);
+}
+
+function ValidateNewPassword(reportObject, newPassword, newPasswordConfirmation = newPassword)
+{
+  if (newPassword.length < 8) {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=passwordTooShort";
+  }
+  if (newPassword != newPasswordConfirmation && newPasswordConfirmation!=null)
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=passwordNotSame";
+  }
+  return reportObject;
+}
+
+function ValidateAge(reportObject, floatAge)
+{
+  if (floatAge < 18.0)
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=ageNotEnough";
+  }
+  return reportObject;
+}
+
+function ValidateNewEmail(reportObject, newEmail)
+{
+  if (!newEmail.includes("@") || !newEmail.includes("."))
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=emailNotValid";
+  }
+  if (logicLayer.GetUserKey({email:newEmail}) != null)
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=emailAlreadyExists";
+  }
+  return reportObject;
+}
+
+function ValidateNewName(reportObject, newFname, newLname)
+{
+  if (newFname.length == "")
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=fnameEmpty";
+  }
+  if (newLname.length == "")
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=lnameEmpty";
+  }
+  return reportObject;
+}
+
+function VerifyLogin(reportObject, email, password)
+{
+  reportObject = VerifyEmail(reportObject, email);
+  if (!reportObject.flag)
+  {
+    reportObject = VerifyPassword(reportObject, logicLayer.GetUserKey({email:email}), password);
+  }
+  return reportObject;
+}
+
+function VerifyPassword(reportObject, key, password)
+{
+  if (!logicLayer.ConfirmPassword(key, password))
+  {
+    reportObject.flag = true;
+    reportObject.string += "&verificationError=passwordIncorrect";
+  }
+  return reportObject;
+}
+
+function VerifyEmail(reportObject, email)
+{
+  if (!email.includes("@") || !email.includes("."))
+  {
+    reportObject.flag = true;
+    reportObject.string += "&verificationError=emailNotValid";
+  }
+  else
+  {
+    var key = logicLayer.GetUserKey({email:email});
+    if (key == null)
     {
-      pageTitle: masterInfoObject.pageTitle || "Real Est(ai)te | The good solution to real estate",
-      accountButtonTitle: masterInfoObject.accountButtonTitle || "Log in / Register",
+      reportObject.flag = true;
+      reportObject.string += "&verificationError=emailNotRegistered";
     }
-  );
+  }
+  return reportObject;
+}
+
+function VerifyVerification(reportObject, key, code)
+{
+  if (code.length != 4)
+  {
+    reportObject.flag = true;
+    reportObject.string += "&verificationError=codeNotValid";
+  }
+  else
+  {
+    if (!logicLayer.ConfirmCode(key, code))
+    {
+      reportObject.flag = true;
+      reportObject.string += "&verificationError=wrongCode";
+    }
+  }
+  return reportObject;
 }
 
 //Listeners-----------------------------------------------------

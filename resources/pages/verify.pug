@@ -1,36 +1,27 @@
-doctype html
-html(lang="en")
-	head
-		title Verify Account
-		meta(charset="UTF-8")
-		meta(name="viewport", content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no")
-		link(href="./public/style.css", rel="stylesheet", type="text/css")
-		link(rel="icon", type="image/png", href="./public/favicon.png")
-	body
-		header(class="header")
-			nav(class="navigation")
-				ul(class="navbar")
-					li(class="navbarOption ", style="float:left;")
-						a(class="navbarOptionLink", href="/")
-							img(src="./public/images/logoButton.png", style="height: 100%;")
+extends master
 
-		div(class="registerloginsection", style="grid-template-columns: auto")
+block pageContent
+		div(class="registerloginsection", style="grid-template-columns: auto 50% auto;")
+			div(class="formbox", style="background-color: rgba(0,0,0,0)")
 			form(method="post", class="formbox")
 				h3 Verify your account to sign in
 				p We sent you an email with a 4 digit verification code, sign in with your email and password with that code to verify your account.
 				div(class="formboxDiv")
-					label(for="email") Email Address
-					input(name="email", type="email", required)
+					if (validationInfo.emailNotUsed)
+						label(style="color: red; font-weight: bold;", for="givenName") No account found by that email address
+					else if (validationInfo.emailNotValid)
+						label(style="color: red; font-weight: bold;", for="givenName") Invalid email address
+					input(name="email", id="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					label(for="password") Password
-					input(name="password", type="password", required)
+					if (validationInfo.passwordNotValid)
+						label(style="color: red; font-weight: bold;", for="givenName") Invalid Password
+					input(name="password", type="password", placeholder="Password", required)
 				div(class="formboxDiv")
-					label(for="code") Verification Code
-					input(name="code", type="text", required)
+					if (validationInfo.codeNotCorrect)
+						label(style="color: red; font-weight: bold;", for="givenName") This is not the correct code
+					input(name="code", type="text", placeholder="4 Digit Verification Code", required)
 				div(style="text-align: center; ")
-					input(type="submit", formaction="/loggedin", value="Log in", style="width: 90%; text-align")
-				a(href="/login", style="text-align: center") 
-					p(style="font-size: 1rem;") Didn't get it? Want to have it resent?
-
-		hr
-		footer &copy; EstAIte Agents 2019
+					input(type="submit", formaction="/verify", class="button", value="Log in", style="width: 90%; text-align")
+				a(href="/reverify", style="text-align: center") 
+					p(style="font-size: 1rem; margin-top: 0") Didn't receive a code? Click to resend one.
+			div(class="formbox", style="background-color: rgba(0,0,0,0)")
