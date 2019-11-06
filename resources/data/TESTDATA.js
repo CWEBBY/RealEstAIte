@@ -1,7 +1,7 @@
 var users = {
-0 : {"givenName" : "Chris", "surname" : "Webb", "email" : "cw@hotmail.com", "password" : "123456789", "age" : "25", accountStatus: {verified: false, latestVerificationCode: 1234}, "mainKeywords" : ["big", "family", "backyard"]},
+0 : {"givenName" : "Chris", "surname" : "Webb", "email" : "cw@asd.com", "password" : "asdasdasd", resetToken: {string: 0, expiration: 0}, "dob" : "25", accountStatus: {verified: true, latestVerificationCode: 1234}, "mainKeywords" : ["big", "family", "backyard"]},
 
-1 : {"givenName" : "Whris", "surname" : "Cebb", "email" : "wc@hotmail.com", "password" : "123456789", "age" : "25", accountStatus: {verified: true, latestVerificationCode: 3210}, "mainKeywords" : ["small", "lonely", "apartment"]}
+1 : {"givenName" : "Whris", "surname" : "Cebb", "email" : "wc@asd.com", "password" : "123456789", resetToken: {string: 0, expiration: 0}, "dob" : "25", accountStatus: {verified: true, latestVerificationCode: 3210}, "mainKeywords" : ["small", "lonely", "apartment"]}
 };
 
 var listings = {

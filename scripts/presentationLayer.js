@@ -1,4 +1,3 @@
-const debug = require("./debug");
 //presentationLayer.js, cw.
 //Modules-----------------------------------------------------
 //-Built in
@@ -239,10 +238,87 @@ server.get(
 )
 
 server.get(
+  "/resetpassword",
+  function (req, res) {
+    if (SessionedUserCheck(req.session)) {res.redirect("/");}
+    else
+    {
+      var qString = req.query;
+      var qErrors = {
+        passwordNotValid: false,
+        passwordsDoNotMatch: false,
+        invalidLink: false
+      }
+
+      if (qString.hasOwnProperty("validationError"))
+      {
+        qString = qString.validationError;
+        if (!qString.includes("miscError")) {qErrors.invalidLink = true;}
+        if (!qString.includes("passwordTooShort")) {qErrors.passwordNotValid = true;}
+        if (qString.includes("passwordNotSame")) {qErrors.passwordsDoNotMatch = true;}
+      }
+
+      if (qString.hasOwnProperty("token"))
+      {
+        var token = qString.token;
+        req.session.token = token;
+        var user = logicLayer.GetUser(logicLayer.GetUserKey({token: token}));
+        if (user == null) {qErrors.invalidLink = true;}
+      }
+      else{qErrors.invalidLink = true;}
+
+      res.render(
+        "resetpassword",
+        {
+          masterInfo: GetMasterInfo({}),
+          validationInfo: qErrors,
+        }
+      );
+    }
+  }
+)
+
+server.get(
   "/logout",
   function (req, res) {
     if (SessionedUserCheck(req.session)) {req.session.destroy();}
     res.redirect("/");
+  }
+)
+
+server.get(
+  "/forgot",
+  function (req, res) {
+
+    var qString = req.query;
+    var qMessages = {
+      resetSent: false
+    };
+    var qErrors = {
+      emailDoesNotExists: false,
+      emailNotValid: false,
+    }
+
+    if (qString.hasOwnProperty("validationError"))
+    {
+      qString = qString.validationError;
+      if (qString.includes("emailDoesNotExists")) {qErrors.emailDoesNotExists = true;}
+      if (qString.includes("emailNotValid")) {qErrors.emailNotValid = true;}
+    }
+    else if (qString.hasOwnProperty("message"))
+    {
+      qString = qString.message;
+      if (qString.includes("sent")) {qMessages.resetSent = true;}
+    }
+
+    res.render(
+      "forgot",
+      {
+        masterInfo: GetMasterInfo({}),
+        validationInfo: qErrors,
+        messageInfo: qMessages
+      }
+    );
   }
 )
 
@@ -404,13 +480,83 @@ server.post(
   }
 )
 
+server.post(
+  "/forgot",
+  function (req, res) {
+    if (SessionedUserCheck(req.session))
+    {
+      req.session.destroy();
+      res.redirect("/");
+    }  //Just incase users hit the URL
+    else
+    {
+      var errorReport = {flag: false, string: ""};
+
+      if (!CheckEmailExistance(req.body.email))
+      {
+        errorReport.flag = true;
+        errorReport.string += "&validationError=emailDoesNotExists";  //Validation logic really needs refactoring, looking at a validation module later.
+      }
+      if (!CheckEmailValidity(req.body.email))
+      {
+        errorReport.flag = true;
+        errorReport.string += "&validationError=emailNotValid";
+      }
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/forgot"+errorReport.string);
+      }
+      else
+      {
+        logicLayer.SendReset(logicLayer.GetUserKey({email: req.body.email}));
+        res.redirect("/forgot?message=sent");
+      }
+    }
+  }
+)
+
+server.post(
+  "/resetpassword",
+  function (req, res) {
+    if (!SessionedUserCheck(req.session))
+    {
+      //Down the validation chain, none of this is sanitized, this could come later, I'd say there are bigger issues in implementation like session storage first.
+      var errorReport = {flag: false, string: ""};
+      errorReport = ValidateNewPassword(errorReport, req.body.password, req.body.confirmPassword);
+      if (errorReport.flag)
+      {
+        errorReport.string = errorReport.string.substring(1, errorReport.string.length);  //Strip first ampersand
+        errorReport.string = "?" + errorReport.string;
+        res.redirect("/resetpassword"+errorReport.string);
+      }
+      else
+      {
+        if (req.session.token)
+        {
+          logicLayer.UpdateUser(logicLayer.GetUserKey({token: req.session.token}), {password: req.body.password, resetToken: {string: req.session.token, expiration: Date.now()}});
+          req.session.destroy();
+          res.redirect("/");
+        }
+        else
+        {
+          res.redirect("/forgot?validationError=miscError");  //Not elegant, but arriving here means there was user mischief ending up posting but not getting.
+        }
+      }
+    }
+    else {res.redirect("/");}
+    }
+)
+
+
+//Functions-----------------------------------------------------
 function SessionedUserCheck (session)
 {
   if (!session.hasOwnProperty("userID")) {return false;}
   return true;
 }
 
-//Functions-----------------------------------------------------
 function GetDateString()
 {
   var time = new Date();
@@ -419,6 +565,24 @@ function GetDateString()
   var day = time.getDate();
   var dateString = year + "-" + month + "-" + day;
   return dateString;
+}
+
+function CheckEmailExistance(email)
+{
+  if (logicLayer.GetUserKey({email:email}) != null) //If cant fetch key by email
+  {
+    return true;
+  }
+  return false;
+}
+
+function CheckEmailValidity(email)
+{
+  if (!email.includes("@") || !email.includes("."))
+  {
+    return false;
+  }
+  return true;
 }
 
 function CalculateAge(dob)
@@ -479,15 +643,15 @@ function ValidateAge(reportObject, floatAge)
 
 function ValidateNewEmail(reportObject, newEmail)
 {
-  if (!newEmail.includes("@") || !newEmail.includes("."))
-  {
-    reportObject.flag = true;
-    reportObject.string += "&validationError=emailNotValid";
-  }
-  if (logicLayer.GetUserKey({email:newEmail}) != null)
+  if (CheckEmailExistance(newEmail))
   {
     reportObject.flag = true;
     reportObject.string += "&validationError=emailAlreadyExists";
+  }
+  else if (CheckEmailValidity(newEmail))
+  {
+    reportObject.flag = true;
+    reportObject.string += "&validationError=emailNotValid";
   }
   return reportObject;
 }
