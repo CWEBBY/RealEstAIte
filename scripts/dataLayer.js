@@ -1,96 +1,122 @@
 //dataLayer.js, cw.
-//Modules-----------------------------------------------------
+//The following module acts as a data access layer using CRUD conventions.
+//Modules
 //-Built in
-const data = require("../resources/data/TESTDATA");
 const mysql = require("mysql");
 
 //-Custom
 const statics = require("./statics");
 
-function AddUser(userObject)
+//Instances
+const dbConnection = mysql.createConnection({
+  host: statics.SERVER_IP,
+  user: statics.DATABASE_USER,
+  password: statics.DATABASE_PASSWORD,
+  database: statics.DATABASE_NAME
+});
+
+//Tables
+//-Users
+function CreateUser(fName, lName, email, password, dob, tokenString, tokenExpiration, verificationCode, verified)
 {
-  //I don't like the idea of taking the password and putting it straight into the DB, so that will change in the future but this way allows any auxillary data that is not defined straight away to go in as well.
-  var randomCode =Math.trunc(Math.round(1000 + (Math.random()*8999)));
-  userObject.passwordResetStatus = {expiry: 0, token: 0};
-  userObject.accountStatus = {verified: false, latestVerificationCode: randomCode }
-  data.users[Object.keys(data.users).length]= userObject;
+  var command = "INSERT INTO users (fName, lName, email, userPassword, dob, tokenString, tokenExpiration, latestVerificationCode, verified) "+
+  "VALUES (" +
+    "'" + fName.toString().toLowerCase() + "'," +
+    "'" + lName.toString().toLowerCase() + "'," +
+    "'" + email.toString().toLowerCase() + "'," +
+    "'" + password.toString() + "'," +
+    "'" + dob.toString() + "'," +
+    "'" + tokenString.toString() + "'," +
+    "'" + tokenExpiration.toString() + "'," +
+    "'" + verificationCode.toString() + "'," +
+          verified.toString() + ");";
+    return QueryDatabase(command);
 }
 
-function GetUserKey(searchTerms = {})
+function ReadUser(userKey, fields = [])
 {
-  if (searchTerms.hasOwnProperty("id"))
+  if (userKey != null)
   {
-    if (data.users.hasOwnProperty(searchTerms.id)) {return searchTerms.id;}
-    else {return null;}
-  }
-  else if (searchTerms.hasOwnProperty("token"))
-  {
-    var wasFound = false;
-    for (var userIndex = 0; userIndex < Object.values(data.users).length; userIndex++)
+    //This function is designed to be flexible throughout development, but here is where an incoming object of whatever data has to be funnelled down to meet the fields of a relational db.
+    //Update this as fields are added to the table.
+
+
+    var fieldsString;
+    if (fields.length == 0) {fieldsString = "*"}
+    else
     {
-      if (data.users[userIndex].resetToken.string == searchTerms.token && Date.now() < data.users[userIndex].resetToken.expiration) {return userIndex;}
+      //Improvement: below really is just here for clarity. Incase keywords, var names, etc interfere, create a custom string switching terms.
+      if (fields.includes("fName"))  {fieldsString += ", fName";}
+      if (fields.includes("lName")) {fieldsString += ", lName";}
+      if (fields.includes("email")) {fieldsString += ", email";}
+      if (fields.includes("password")) {fieldsString += ", userPassword";}  //password == sql keyword
+      if (fields.includes("dob")) {fieldsString += ", dob";}
+      if (fields.includes("tokenString")) {fieldsString += ", tokenString" ;}
+      if (fields.includes("tokenExpiration")) {fieldsString += ", tokenExpiration" ;}
+      if (fields.includes("latestVerificationCode")) {fieldsString += ", latestVerificationCode";}
+      if (fields.includes("verified")) {fieldsString += ", verified";}
+
+      fieldsString = fieldsString.substring(1); //Remove first comma.
     }
-    return null;
-  }
-  else if (searchTerms.hasOwnProperty("email"))
-  {
-    var wasFound = false;
-    for (var userIndex = 0; userIndex < Object.values(data.users).length; userIndex++)
-    {
-      if (data.users[userIndex].email == searchTerms.email) {return userIndex;}
-    }
-    return null;
+
+    var command = "SELECT " + fieldsString + " FROM users WHERE userID="+key.toString();
+    return QueryDatabase(command);
   }
   else {return null;}
 }
 
-function GetUser(key)
+function UpdateUser(userKey, userObject = {})
 {
-  /*const qString = "SELECT * FROM users WHERE userID=" + key+1 + ";";
-  const dbConnection = mysql.createConnection({
-    host: statics.SERVER_IP,
-    user: statics.DATABASE_USER,
-    password: statics.DATABASE_PASSWORD,
-    database: statics.DATABASE_NAME
-  });
+  if (userKey != null)
+  {
+    //This function is designed to be flexible throughout development, but here is where an incoming object of whatever data has to be funnelled down to meet the fields of a relational db.
+    //Update this as fields are added to the table.
+    var command = "";
 
-  var user = null;
-  console.log(dbConnection.query(qString));//,
-    /*function(err, rows, fields)
-    {
-      if (err)
-      {
-        console.log(err);
-        return;
-      }
-      console.log(rows[0].givenName);
-      return data.users[key];
-    }
-  );+*/
-  return data.users[key];
+    //Building the query.
+    //toString everything, just to be safe.
+    if (userObject.includes("fName"))  {command += ", fName='" + userObject.fName.toString() + "'";}
+    if (userObject.includes("lName")) {command += ", lName='" + userObject.lName.toString() + "'";}
+    if (userObject.includes("email")) {command += ", email='" + userObject.email.toString() + "'";}
+    if (userObject.includes("password")) {command += ", userPassword='" + userObject.password.toString() + "'";}
+    if (userObject.includes("dob")) {command += ", dob='" + userObject.dob.toString() + "'";}
+    if (userObject.includes("tokenString")) {command += ", tokenString='" + userObject.tokenString.toString() + "'";}
+    if (userObject.includes("tokenExpiration")) {command += ", tokenExpiration='" + userObject.tokenExpiration.toString() + "'";}
+    if (userObject.includes("latestVerificationCode")) {command += ", latestVerificationCode='" + userObject.latestVerificationCode.toString() + "'";}
+    if (userObject.includes("verified")) {command += ", verified='" + userObject.verified.toString() + "'";}
+
+    command = "UPDATE users Set " + command.substring(1) + " WHERE userID='" + userKey.toString() + "'";
+
+    return QueryDatabase(command);
+  }
 }
 
-function SetVerification(key)
+function DeleteUser(userKey)
 {
-  data.users[key].accountStatus.verified = true;
+  if (userKey != null)
+  {
+    var command = "DELETE FROM user WHERE userID='" + userKey.toString() + "';";
+    return QueryDatabase(command);
+  }
 }
 
-function ConfirmCode(key, code)
+function GetUserKey(searchTerms = {})
 {
-  return data.users[key].accountStatus.latestVerificationCode == code;
+  //Needs nulling if key is not found
+  var command;
+  if (searchTerms.hasOwnProperty("id")) {command = "SELECT * FROM users WHERE userID=" + searchTerms.id.toString();}
+  else if (searchTerms.hasOwnProperty("token")) {command = "SELECT * FROM users WHERE tokenString=" + searchTerms.tokenString;}
+  else if (searchTerms.hasOwnProperty("email")) {command = "SELECT * FROM users WHERE email=" + searchTerms.email;}
+  else {return null;}
+  return QueryDatabase(command);
 }
 
-function UpdateUser(key, userObject)
+//-Listings
+
+//Functions
+function QueryDatabase(command)
 {
-  var userInQuestion = data.users[key];
-  Object.assign(userInQuestion, userObject);
-  data.users[key] = userInQuestion;
+  dbConnection.query(command, (result) => {return result;});
 }
 
-function SetToken(key, token)
-{
-  data.users[key].resetToken = token;
-}
-
-module.exports = {AddUser, UpdateUser, GetUserKey, GetUser, ConfirmCode, SetVerification, SetToken};
-//Data search functons going in here...
+module.exports = {CreateUser, ReadUser, UpdateUser, DeleteUser, GetUserKey};
