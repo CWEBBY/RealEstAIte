@@ -36,7 +36,7 @@ server.use("/public", express.static(path.join(__dirname, statics.HTTP_PUBLIC_DI
 
 //Requests-----------------------------------------------------
 //-General
-function SessionUsersName(session)
+async function SessionUsersName(session)
 {
   if (session.userID) {return "My Account";}
   else {return "Log In / Register";}
@@ -44,10 +44,10 @@ function SessionUsersName(session)
 
 server.get(
   "/",
-  function (req, res) {
+  async function (req, res) {
     //
     var masterPageObject = logicLayer.MasterPageController({
-        anonSession: !logicLayer.UserSessionCheck(req.session.userID)
+        anonSession:  !logicLayer.UserSessionCheck(req.session.userID)
     });
 
     res.render(
@@ -63,7 +63,7 @@ server.get(
 //Gets
 server.get(
   "/loginorregister",
-  function (req, res) {
+  async function (req, res) {
     var masterPageObject = logicLayer.MasterPageController({
         anonSession: !logicLayer.UserSessionCheck(req.session.userID),
         linksBlocked: true
@@ -100,7 +100,7 @@ server.get(
 
 server.get(
   "/verify",
-  function (req, res) {
+  async function (req, res) {
     var masterPageObject = logicLayer.MasterPageController({
         anonSession: !logicLayer.UserSessionCheck(req.session.userID),
         linksBlocked: true
@@ -112,7 +112,7 @@ server.get(
       dob: [],
       password: []
     };
-    validationErrorsObject = Object.assign(validationErrorsObject, logicLayer.QueryReader("validationError", req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
     res.render(
       "verify",
       {
@@ -126,32 +126,29 @@ server.get(
 //Posts
 server.post(
   "/register",
-  function (req, res) {
+  async (req, res) => {
     if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
     else
     {
-      var errorReport = logicLayer.QueryBuilder(
-        "validationError",
-        logicLayer.ValidationCheck({
-          //Input: {{type}, [subscribedChecks]}
-          [req.body.email]: {type: "email", checks: ["validEmail"]},
-          [req.body.givenName]: {type: "fname", checks: ["notEmpty"]},
-          [req.body.surname]: {type: "lname", checks: ["notEmpty"]},
-          [req.body.dob]:{type: "dob", checks: ["validAge"]},
-          [req.body.password]: {type: "password", checks: ["validPassword"]},
-          poster: {type: "register"}
-        })
-      );
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.email]: {type: "email", checks: ["validEmail"]},
+        [req.body.givenName]: {type: "fname", checks: ["notEmpty"]},
+        [req.body.surname]: {type: "lname", checks: ["notEmpty"]},
+        [req.body.dob]:{type: "dob", checks: ["validAge"]},
+        [req.body.password]: {type: "password", checks: ["validPassword"]},
+        poster: {type: "register"}
+      });
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
       if (errorReport.flag) {res.redirect("/loginorregister"+errorReport.string);}
       else
       {
-        errorReport = logicLayer.QueryBuilder(
-          "verificationError",
-          logicLayer.VerificationCheck({
-            [req.body.email]: {type: "email", checks: ["newEmail"]},
-            poster: {type: "register"}
-          })
-        );
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["existingEmail"]},
+          poster: {type: "register"}
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+
         if (errorReport.flag) {res.redirect("/loginorregister"+errorReport.string);}
         else
         {
@@ -162,6 +159,81 @@ server.post(
     }
   }
 )
+
+server.post(
+  "/login",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    else
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.email]: {type: "email", checks: ["validEmail"]},
+        [req.body.password]: {type: "password", checks: ["validPassword"]},
+        poster: {type: "login"}
+      });
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/loginorregister"+errorReport.string);}
+      else
+      {
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["newEmail"]},
+          [req.body.password]: {type: "password", checks: ["correctPassword"], params: {email: req.body.email}},
+          poster: {type: "login"}
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+        if (errorReport.flag) {res.redirect("/loginorregister"+errorReport.string);}
+        else
+        {
+          var verificationCheck = await logicLayer.IsVerifiedAccount(req.body.email);
+          if (verificationCheck)
+          {
+            var sessionID = await logicLayer.LogUserIn(req.body.email);
+            req.session.userID = sessionID;
+            res.redirect("/");
+          }
+          else {res.redirect("/verify");}
+        }
+      }
+    }
+  }
+)
+
+server.post(
+  "/verify",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    else
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.email]: {type: "email", checks: ["validEmail"]},
+        [req.body.password]: {type: "password", checks: ["validPassword"]},
+        [req.body.code]: {type: "code", checks: ["validCode"]}
+      });
+
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/verify"+errorReport.string);}
+      else
+      {
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["newEmail"]},
+          [req.body.password]: {type: "password", checks: ["correctPassword"], params: {email: req.body.email}},
+          [req.body.code]: {type: "code", checks: ["correctCode"], params: {email: req.body.email}}
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+        if (errorReport.flag) {res.redirect("/verify"+errorReport.string);}
+        else
+        {
+          var sessionID = await logicLayer.LogUserIn(req.body.email);
+          req.session.userID = sessionID;
+          res.redirect("/");
+        }
+      }
+    }
+  }
+)
+
 //Listeners-----------------------------------------------------
 server.listen(
   statics.PORT,

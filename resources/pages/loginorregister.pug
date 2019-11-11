@@ -2,7 +2,7 @@ extends master
 
 block pageContent
 		div(class="registerloginsection")
-			form(method="post", class="formbox")
+			form(method="post", action="/register", class="formbox")
 				h3 Create an account
 				div(class="formboxDiv formBoxName", style="padding-right: 2%;")
 					if (formErrors.register.fname.includes("notEmpty"))
@@ -36,19 +36,21 @@ block pageContent
 				a(href="/policy", style="text-align: center") 
 						p(style="font-size: 1rem;") Read our Privacy Policy here 
 				div(style="text-align: center;")
-					input(type="submit", formaction="/register", class="button", value="Register", style="width: 90%; text-align")
+					input(type="submit", class="button", value="Register", style="width: 90%; text-align")
 				
 			div(class="grid-item", style="background-color: rgba(0,0,0,0);")
 			form(method="post", class="formbox")
 				h3 ...or log in
 				div(class="formboxDiv")
-					//if (formErrors.login.email.includes("validEmail"))
+					if (formErrors.login.email.includes("validPassword"))
 						label(style="color: red; font-weight: bold;", for="email") Email address not valid
-					//else if (formErrors.login.email.includes("newEmail"))
+					else if (formErrors.login.email.includes("newEmail"))
 						label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
 					input(name="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					//if (false)
+					if (false)
+						label(style="color: red; font-weight: bold;", for="password") Password is incorrect
+					if (false)
 						label(style="color: red; font-weight: bold;", for="password") Password is incorrect
 					input(name="password", type="password", placeholder="Password", required)
 				div(style="text-align: center;")

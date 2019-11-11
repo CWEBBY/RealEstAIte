@@ -33,15 +33,6 @@ function RegisterUser(userObject = {})
   else {return null}
 }
 
-function GetUser(userKey, fields = [])
-{
-  if (userKey != null)
-  {
-    return dataLayer.ReadUser(userKey, fields);
-  }
-  else {return null}
-}
-
 function SetUser(userKey, fields = {})
 {
   if (userKey != null)
@@ -92,11 +83,7 @@ function GenerateTokenString()
 
 function GenerateVerificationCode(email)
 {
-  var code = Math.floor(Math.random() * 9999);
-  code = code.toString();
-  if (code.length == 3) {code = "0" + code;}
-  else if (code.length == 2) {code = "00" + code;}
-  else if (code.length == 1) {code = "000" + code;}
+  var code = crypto.randomBytes(2).toString("hex");
   if (statics.DEV_MODE) {console.log("Verification code for " + email + " is as follows: " + code);}
   else
   {
@@ -139,29 +126,30 @@ function MasterPageController(masterParams = {})
   return (masterInfo);
 }
 
-function ValidationCheck(checkParams)
+async function ValidationCheck(checkParams)
 {
-  functionKeys = {
+  functionKeys = await {
     "validEmail": IsValidEmail,
     "validPassword": IsValidPassword,
     "validAge": IsValidAge,
+    "validCode": IsValidCode,
     "notEmpty": IsNotEmpty
   }
-  return InputCheck(functionKeys, checkParams);
+  return await InputCheck(functionKeys, checkParams);
 }
 
-function VerificationCheck(checkParams)
+async function VerificationCheck(checkParams)
 {
-  functionKeys = {
-    "newEmail": IsNewEmail,
-    "existingEmail": IsExistingEmail,
-    "correctPassword": IsCorrectPassword,
-    "correctCode": IsCorrectCode
+  functionKeys = await {
+    "newEmail": await IsNewEmail,
+    "existingEmail": await IsExistingEmail,
+    "correctPassword": await IsCorrectPassword,
+    "correctCode": await IsCorrectCode
   }
-  return InputCheck(functionKeys, checkParams);
+  return await InputCheck(functionKeys, checkParams);
 }
 
-function InputCheck(functionKeys, checkParams)
+async function InputCheck(functionKeys, checkParams)
 {
   var report = {};
   var errorCount = 0;
@@ -169,71 +157,75 @@ function InputCheck(functionKeys, checkParams)
   for (var inputIndex = 0; inputIndex < Object.keys(checkParams).length; inputIndex++)
   {//For every form input
     var testString = Object.keys(checkParams)[inputIndex];
-    var testStringParams = Object.values(checkParams)[inputIndex];
+    var testStringValues = Object.values(checkParams)[inputIndex];
     var testStringType = Object.values(checkParams)[inputIndex].type;
     var testStringTests = Object.values(checkParams)[inputIndex].checks;
+    var testStringParams = null;
+    if (Object.values(checkParams)[inputIndex].hasOwnProperty("params")) {testStringParams = Object.values(checkParams)[inputIndex].params;}
 
     //Below is not the prettiest, but the reward for the sacrifice in elegance is the parsing of submission context sensitive data, like in the case of the login/register page.
-    if (testStringParams.hasOwnProperty("checks"))
+    if (testStringValues.hasOwnProperty("checks"))
     {
       report[testString] = {type: testStringType, checks: {}};
       for (var testIndex = 0; testIndex < testStringTests.length; testIndex++)
       {
-        var testResult = false;
+        var testResult = true;
         for (var testFunctionsIndex = 0; testFunctionsIndex < Object.keys(functionKeys).length; testFunctionsIndex++)
         {
           var caller = Object.keys(functionKeys)[testFunctionsIndex];
           var testFunction = Object.values(functionKeys)[testFunctionsIndex];
           if (testStringTests[testIndex] == caller)
           {
-            report[testString].checks[caller] = !testFunction(testString);
-            if (report[testString].checks[caller]) {testResult = true;}
+            //This will break if passing params to a function that doesnt take it.
+            //Be careful with verification checks for param overflow.
+            if (testStringParams != null) {report[testString].checks[caller] = await testFunction(testString, testStringParams);}
+            else {report[testString].checks[caller] = await testFunction(testString);}
+            if (report[testString].checks[caller]) {testResult = false;}
           }
         }
-        if (testResult) {errorCount++;}
+        if (!testResult) {errorCount++;}
       }
     }
     else {secretsIndices.push(inputIndex);}
   }
 
-  if (errorCount > 0)
+  if (errorCount > 0 && secretsIndices.length > 0)
   {
     var testString = Object.keys(checkParams)[secretsIndices[0]];
-    var testStringParams = Object.values(checkParams)[secretsIndices[0]];
-    report[testString] = testStringParams
+    var testStringValues = Object.values(checkParams)[secretsIndices[0]];
+    report[testString] = testStringValues
   }
-  return report;
+  return await report;
 }
 
-function QueryReader(headMessage, validationQueryObject = {})
+async function QueryReader(headMessage, validationQueryObject = {})
 {
   var report = {};
   if (validationQueryObject.hasOwnProperty("message"))
   {
-
     if (validationQueryObject.message == headMessage)
     {
       for (var keyIndex = 0; keyIndex < Object.keys(validationQueryObject).length; keyIndex++)
       {
-        if (Object.keys(validationQueryObject)[keyIndex] != headMessage) {report[Object.keys(validationQueryObject)[keyIndex]] = Object.values(validationQueryObject)[keyIndex];}
+        if (Object.keys(validationQueryObject)[keyIndex] != headMessage) {report[Object.keys(validationQueryObject)[keyIndex]] = await Object.values(validationQueryObject)[keyIndex];}
       }
     }
   }
-  return report;
+  return await report;
 }
 
-function QueryBuilder(headMessage, validationCheckObject)
+async function QueryBuilder(headMessage, validationCheckObject)
 {
   var parsedReport = {flag: false, string: '?message='+headMessage};
 
   for (var checkIndex = 0; checkIndex < Object.keys(validationCheckObject).length; checkIndex++)
   {
     var testString = Object.keys(validationCheckObject)[checkIndex];
-    var testStringParams = Object.values(validationCheckObject)[checkIndex];
+    var testStringValues = Object.values(validationCheckObject)[checkIndex];
     var testStringType = Object.values(validationCheckObject)[checkIndex].type;
     var testStringTests = Object.values(validationCheckObject)[checkIndex].checks;
 
-    if (testStringParams.hasOwnProperty("checks"))
+    if (testStringValues.hasOwnProperty("checks"))
     {
       for (var resultIndex = 0; resultIndex < Object.keys(testStringTests).length; resultIndex++)
       {
@@ -250,78 +242,107 @@ function QueryBuilder(headMessage, validationCheckObject)
     else
     {
       var unknownQuery = "&" + testString.toString() + "=";
-      for (var unknownQueryIndex = 0; unknownQueryIndex < Object.keys(testStringParams).length; unknownQueryIndex++)
+      for (var unknownQueryIndex = 0; unknownQueryIndex < Object.keys(testStringValues).length; unknownQueryIndex++)
       {
         if (unknownQueryIndex > 0) {unknownQuery += "+"}
-        unknownQuery += Object.values(testStringParams)[unknownQueryIndex].toString();
+        unknownQuery += Object.values(testStringValues)[unknownQueryIndex].toString();
       }
       parsedReport.string += unknownQuery;
     }
   }
-  return parsedReport;
+  return await parsedReport;
 }
 
 //Validation Helpers
-function IsValidEmail(email)
+async function IsValidEmail(email)
 {
-  if (!email.includes("@") || !email.includes(".")) {return false;}
-  return true;
+  if (!email.includes("@") || !email.includes(".")) {return await true;}
+  return await false;
 }
 
-function IsNotEmpty(string)
+async function IsNotEmpty(string)
 {
-  if (string != "" &&  string.length > 0 && string != null) {return true;}
-  return false;
+  if (string != "" &&  string.length > 0 && string != null) {return await false;}
+  return await true;
 }
 
-function IsValidPassword(newPassword)
+async function IsValidPassword(newPassword)
 {
-  if (newPassword.length >= 8) {return true;}
-  return false;
+  if (newPassword.length >= 8) {return await false;}
+  return await true;
 }
 
-function IsConfirmedPassword(newPassword, newConfirmPassword)
+async function IsValidAge(dob)
 {
-  if (newPassword == newConfirmPassword) {return true;}
-  return false;
+  if (await CalculateAge(dob) >= 18.0) {return await false;}
+  return await true;
 }
 
-function IsValidAge(dob)
+async function IsValidCode(code)
 {
-  if (CalculateAge(dob) >= 18.0) {return true;}
-  return false;
+  if (code.length == 4) {return await false;}
+  return await true;
 }
 
-function IsCorrectValid()
+async function IsNewEmail(email)
 {
-  return true;
+  var isNotIsNewEmail = await !IsExistingEmail(email);
+  return isNotIsNewEmail;
 }
 
-function IsNewEmail()
+async function IsVerifiedAccount(email)
 {
-  return true;
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+  var verificationQuery = await dataLayer.ReadUser(keyQuery, ["verified"]);
+  if (verificationQuery.verified == 0) {verificationQuery.verified = false;}  //SQLisms
+  if (verificationQuery.verified == 1) {verificationQuery.verified = true;}  //SQLisms
+  return verificationQuery.verified;
 }
 
-function IsExistingEmail()
+async function IsExistingEmail(email)
 {
-  return true;
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+  if (await keyQuery == null) {return await false;}
+  else {return await true;}
 }
 
-function IsCorrectPassword()
+async function IsCorrectPassword(password, paramsObject = null)
 {
-  return true;
+  if (paramsObject == null) {return false;}
+  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
+  if (keyQuery != null)
+  {
+    var passwordQuery = await dataLayer.ReadUser(keyQuery, ["userPassword"]);
+    if (passwordQuery.userPassword == password) {return await false;}
+  }
+  return await true;
 }
 
-function IsCorrectCode()
+async function IsCorrectCode(code, paramsObject = null)
 {
-  return true;
+  if (paramsObject == null) {return await false;}
+  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
+  var codeQuery = await dataLayer.ReadUser(keyQuery, ["latestVerificationCode"]);
+  if (codeQuery.latestVerificationCode == code) {return await false;}
+  return await true;
 }
 
-function CalculateAge(dob)
+async function CalculateAge(dob)
 {
   var now = new Date().getTime();
   var birth = new Date(dob).getTime();
-  return ((now - birth) / (1000 * 3600 * 24)) / 365.25;
+  return await ((now - birth) / (1000 * 3600 * 24)) / 365.25;
+}
+
+async function LogUserIn(email)
+{
+  var verified = await IsVerifiedAccount(email);
+  var userKey = await dataLayer.GetUserKey({email: email}); //Not happy with how many times Im nestedly breaking async here, but out of time.
+  if (!verified)
+  {
+    var verifiyQuery = await dataLayer.UpdateUser(userKey, {verified: 1});
+  }
+  return userKey;
 }
 
 //Functions exported
@@ -332,5 +353,7 @@ module.exports = {
   ValidationCheck,
   QueryReader,
   QueryBuilder,
-  VerificationCheck
+  VerificationCheck,
+  IsVerifiedAccount,
+  LogUserIn
 }
