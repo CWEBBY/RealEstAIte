@@ -81,9 +81,21 @@ function GenerateTokenString()
   return crypto.randomBytes(32).toString("hex");
 }
 
-function GenerateVerificationCode(email)
+async function RegenerateVerificationCode(email)
 {
-  var code = crypto.randomBytes(2).toString("hex");
+  var newCode = await GenerateVerificationCode(email);
+  var userKey = await dataLayer.GetUserKey({email: email});
+  if (userKey != null)
+  {
+    var setQuery = await dataLayer.UpdateUser(userKey, {latestVerificationCode: newCode});
+    return setQuery;
+  }
+  else {return null;}
+}
+
+async function GenerateVerificationCode(email)
+{
+  var code = await crypto.randomBytes(2).toString("hex");
   if (statics.DEV_MODE) {console.log("Verification code for " + email + " is as follows: " + code);}
   else
   {
@@ -286,8 +298,9 @@ async function IsValidCode(code)
 
 async function IsNewEmail(email)
 {
-  var isNotIsNewEmail = await !IsExistingEmail(email);
-  return isNotIsNewEmail;
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+  if (await keyQuery == null) {return await true;}
+  else {return await false;}
 }
 
 async function IsVerifiedAccount(email)
@@ -345,6 +358,41 @@ async function LogUserIn(email)
   return userKey;
 }
 
+async function SendResetLink(email)
+{
+  var userKey = await dataLayer.GetUserKey({email: email});
+  if (userKey != null)
+  {
+    var token = await GenerateTokenString();
+    var alterUserToken = await dataLayer.UpdateUser(userKey, {tokenString: token, tokenExpiration: Date.now() + (1000*60*60)});
+    if (statics.DEV_MODE) {console.log("The tokenstring url to follow for " + email.toString() + " to reset password is: " + statics.SERVER_IP.toString() +":"+ statics.PORT + "/resetpassword?token=" + token + ", it will be valid for an hour.");}
+    else
+    {
+      SendMail(
+        email,
+        "Reset Password",
+        "Hello, please follow the link below to reset your password, this link will be valid for an hour: " + statics.SERVER_IP.toString() +":"+ statics.PORT + "/resetpassword?token=" + token
+      );
+    }
+    return true;
+  }
+  return false;
+}
+
+async function SearchToken(token)
+{
+  var userKey = await dataLayer.GetUserKey({tokenString: token});
+  return userKey;
+}
+
+async function SetNewPassword(userKey, newPassword)
+{
+  var newToken = await GenerateTokenString();
+
+  var userKey = await dataLayer.UpdateUser(userKey,{userPassword: newPassword, tokenExpiration: Date.now()});
+  return userKey;
+}
+
 //Functions exported
 module.exports = {
   RegisterUser,
@@ -355,5 +403,9 @@ module.exports = {
   QueryBuilder,
   VerificationCheck,
   IsVerifiedAccount,
-  LogUserIn
+  LogUserIn,
+  SendResetLink,
+  SearchToken,
+  SetNewPassword,
+  RegenerateVerificationCode
 }

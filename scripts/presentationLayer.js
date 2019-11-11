@@ -36,12 +36,6 @@ server.use("/public", express.static(path.join(__dirname, statics.HTTP_PUBLIC_DI
 
 //Requests-----------------------------------------------------
 //-General
-async function SessionUsersName(session)
-{
-  if (session.userID) {return "My Account";}
-  else {return "Log In / Register";}
-}
-
 server.get(
   "/",
   async function (req, res) {
@@ -52,6 +46,31 @@ server.get(
 
     res.render(
       "index",
+      {
+        masterInfo: masterPageObject,
+      }
+    );
+  }
+)
+
+server.get(
+  "/logout",
+  async function (req, res) {
+    if (req.session.userID) {req.session.destroy();}
+    res.redirect("/");
+  }
+)
+
+server.get(
+  "/policy",
+  async function (req, res) {
+    //
+    var masterPageObject = logicLayer.MasterPageController({
+        anonSession:  !logicLayer.UserSessionCheck(req.session.userID)
+    });
+
+    res.render(
+      "policy",
       {
         masterInfo: masterPageObject,
       }
@@ -75,7 +94,7 @@ server.get(
     };
 
     //Not sure if it will be mentioned anywhere else, validation in this project means validating data to make sense, verification means checking the database for verification.
-    var errorReport = logicLayer.QueryReader("validationError", req.query);
+    var errorReport = await logicLayer.QueryReader("validationError", req.query);
     if (errorReport.hasOwnProperty("poster"))  //In this case, this will either have an error where this property is set, or it won't have an error.
     {//Validation, general parsing.
       if (errorReport.poster == "register") {formErrorsObject.register = Object.assign(formErrorsObject.register, errorReport);}
@@ -83,7 +102,7 @@ server.get(
     }
     else //If it doesn't have an error.
     {//Verification, checking details from the database.
-      errorReport = logicLayer.QueryReader("verificationError",req.query);
+      errorReport = await logicLayer.QueryReader("verificationError",req.query);
       if (errorReport.poster == "register") {formErrorsObject.register = Object.assign(formErrorsObject.register, errorReport);}
       else if (errorReport.poster == "login") {formErrorsObject.login = Object.assign(formErrorsObject.login, errorReport);}
     }
@@ -93,6 +112,55 @@ server.get(
       {
         masterInfo: masterPageObject,
         formErrors: formErrorsObject
+      }
+    );
+  }
+)
+
+server.get(
+  "/forgot",
+  async function (req, res) {
+    var masterPageObject = logicLayer.MasterPageController({
+        anonSession: !logicLayer.UserSessionCheck(req.session.userID),
+        linksBlocked: true
+    });
+    var validationErrorsObject = {email: [], message: []};
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("verificationError", await req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("resent", await req.query));
+    res.render(
+      "forgot",
+      {
+        masterInfo: masterPageObject,
+        formErrors: validationErrorsObject,
+      }
+    );
+  }
+)
+
+server.get(
+  "/resetpassword",
+  async function (req, res) {
+    var masterPageObject = logicLayer.MasterPageController({
+        anonSession: true,
+        linksBlocked: true
+    });
+    var validationErrorsObject = {password: [], token: []};
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("verificationError", await req.query));
+
+    if (req.session.hasOwnProperty("token")) {validationErrorsObject.token = true;}
+    else if (req.query.hasOwnProperty("token"))
+    {
+      req.session.token=req.query.token
+      validationErrorsObject.token = true;
+    }
+    else{validationErrorsObject.token = false;}
+    res.render(
+      "resetpassword",
+      {
+        masterInfo: masterPageObject,
+        formErrors: validationErrorsObject,
       }
     );
   }
@@ -113,8 +181,32 @@ server.get(
       password: []
     };
     validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("verificationError", await req.query));
     res.render(
       "verify",
+      {
+        masterInfo: masterPageObject,
+        validationInfo: validationErrorsObject
+      }
+    );
+  }
+)
+
+server.get(
+  "/reverify",
+  async function (req, res) {
+    var masterPageObject = logicLayer.MasterPageController({
+        anonSession: !logicLayer.UserSessionCheck(req.session.userID),
+        linksBlocked: true
+    });
+    var validationErrorsObject = {
+      email: [],
+      password: []
+    };
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
+    validationErrorsObject = await Object.assign(validationErrorsObject, await logicLayer.QueryReader("verificationError", await req.query));
+    res.render(
+      "reverify",
       {
         masterInfo: masterPageObject,
         validationInfo: validationErrorsObject
@@ -228,6 +320,104 @@ server.post(
           var sessionID = await logicLayer.LogUserIn(req.body.email);
           req.session.userID = sessionID;
           res.redirect("/");
+        }
+      }
+    }
+  }
+)
+
+server.post(
+  "/resetpassword",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    else
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.password]: {type: "password", checks: ["validPassword"]},
+      });
+
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/resetpassword"+errorReport.string);}
+      else
+      {
+        if (req.session.token != null)
+        {
+          var userKey = await logicLayer.SearchToken(req.session.token);
+          if (userKey == null)
+          {
+            req.session.destroy();
+            res.redirect("/");
+          }
+          else
+          {
+            var setPassword = await logicLayer.SetNewPassword(userKey, req.body.password);
+            req.session.destroy();
+          }
+          res.redirect("/");
+        }
+        else {res.redirect("/");}
+      }
+    }
+  }
+)
+
+server.post(
+  "/forgot",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    else
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.email]: {type: "email", checks: ["validEmail"]}
+      });
+
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/forgot"+errorReport.string);}
+      else
+      {
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["newEmail"]},
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+
+        if (errorReport.flag) {res.redirect("/forgot"+errorReport.string);}
+        else
+        {
+          var resetSent = await logicLayer.SendResetLink(req.body.email);
+          res.redirect("/forgot"+"?message=resent");
+        }
+      }
+    }
+  }
+)
+
+server.post(
+  "/reverify",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    else
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.email]: {type: "email", checks: ["validEmail"]}
+      });
+
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/reverify"+errorReport.string);}
+      else
+      {
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["newEmail"]},
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+
+        if (errorReport.flag) {res.redirect("/reverify"+errorReport.string);}
+        else
+        {
+          var resetSent = await logicLayer.RegenerateVerificationCode(req.body.email);
+          res.redirect("/reverify"+"?message=resent");
         }
       }
     }

@@ -60,7 +60,7 @@ async function ReadUser(userKey, fields = [])
   else {return null;}
 }
 
-function UpdateUser(userKey, userObject = {})
+async function UpdateUser(userKey, userObject = {})
 {
   if (userKey != null)
   {
@@ -73,7 +73,7 @@ function UpdateUser(userKey, userObject = {})
     if (userObject.hasOwnProperty("fName"))  {command += ", fName='" + userObject.fName.toString() + "'";}
     if (userObject.hasOwnProperty("lName")) {command += ", lName='" + userObject.lName.toString() + "'";}
     if (userObject.hasOwnProperty("email")) {command += ", email='" + userObject.email.toString() + "'";}
-    if (userObject.hasOwnProperty("password")) {command += ", userPassword='" + userObject.password.toString() + "'";}
+    if (userObject.hasOwnProperty("userPassword")) {command += ", userPassword='" + userObject.userPassword.toString() + "'";}
     if (userObject.hasOwnProperty("dob")) {command += ", dob='" + userObject.dob.toString() + "'";}
     if (userObject.hasOwnProperty("tokenString")) {command += ", tokenString='" + userObject.tokenString.toString() + "'";}
     if (userObject.hasOwnProperty("tokenExpiration")) {command += ", tokenExpiration='" + userObject.tokenExpiration.toString() + "'";}
@@ -81,8 +81,9 @@ function UpdateUser(userKey, userObject = {})
     if (userObject.hasOwnProperty("verified")) {command += ", verified='" + userObject.verified.toString() + "'";}
 
     command = "UPDATE users Set " + command.substring(1) + " WHERE userID='" + userKey.toString() + "'";
+    var update = await QueryDatabase(command);
 
-    return QueryDatabase(command);
+    return update;
   }
 }
 
@@ -102,8 +103,8 @@ async function GetUserKey(searchTerms = {})
   //Nothing gets to the data without the key from this.
   var command;
   var query = null;
-  if (searchTerms.hasOwnProperty("id")) {command = "SELECT * FROM users WHERE userID=" + searchTerms.id.toString();}
-  else if (searchTerms.hasOwnProperty("token")) {command = "SELECT * FROM users WHERE tokenString=" + searchTerms.tokenString;}
+  if (searchTerms.hasOwnProperty("id")) {command = "SELECT * FROM users WHERE userID='" + searchTerms.id.toString()+"'";}
+  else if (searchTerms.hasOwnProperty("tokenString")) {command = "SELECT * FROM users WHERE tokenString='" + searchTerms.tokenString+"'";}
   else if (searchTerms.hasOwnProperty("email")) {command = "SELECT * FROM users WHERE email='" + searchTerms.email + "';";}
   else {return null;}
   var query = await QueryDatabase(command);
@@ -114,6 +115,7 @@ async function GetUserKey(searchTerms = {})
     query = query[0].userID;
   }
   else {query = null;}
+
   return query;
 }
 
