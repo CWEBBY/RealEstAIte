@@ -7,6 +7,7 @@ Site:
 -AI implementation
 -Listing SQL dataLayer adaptation.
 -Styling (a last minute thing).
+-Fix the server console IP when hosting.
 
 Elsewhere:
 -recommender system in console.
