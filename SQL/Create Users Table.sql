@@ -1,3 +1,4 @@
+DROP TABLE users;
 CREATE TABLE users (
     userID							INT NOT NULL AUTO_INCREMENT,
     fName							CHAR (255),
@@ -8,6 +9,6 @@ CREATE TABLE users (
     tokenString						CHAR (64),
     dob								CHAR (255),
     verified						BOOL,
-    latestVerificationCode			CHAR (4),
+    latestVerificationCode			CHAR (64),
     PRIMARY KEY (userID)
 );

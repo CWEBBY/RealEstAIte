@@ -1,13 +1,9 @@
 To do:
 Site:
--Slight refactoring.
 -Some client side validation (non-important stuff like confirming password fields).
--A profile page.
--Property searching.
+-Property searching / Listing SQL dataLayer adaptation.
 -AI implementation
--Listing SQL dataLayer adaptation.
 -Styling (a last minute thing).
--Fix the server console IP when hosting.
 
 Elsewhere:
 -recommender system in console.

@@ -4,21 +4,21 @@ block pageContent
   br
   br
   br
-  if (messageInfo.saved)
+  if (formErrors.message.includes("saved"))
     p Your information has been updated.
   form(action="/saveprofile", method="post")
-    if (validationInfo.fnameInvalid)
+    if (formErrors.fname.includes("notEmpty"))
       label(style="color: red; font-weight: bold;", for="email") Please enter a first name
     input(type="text", name="fname", value=userInfo.fname, placeholder="First Name", required)
-    if (validationInfo.lnameInvalid)
+    if (formErrors.lname.includes("notEmpty"))
       label(style="color: red; font-weight: bold;", for="email") Please enter a last name
     input(type="text", name="lname", value=userInfo.lname, placeholder="Last Name", required)
-    if (validationInfo.emailAlreadyExists)
+    if (formErrors.email.includes("newEmail"))
       label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
-    else if (validationInfo.emailInvalid)
+    else if (formErrors.email.includes("validEmail"))
       label(style="color: red; font-weight: bold;", for="email") Email address is not valid
     input(name="email", type="email", value=userInfo.email, placeholder="Email Address", required)
-    if (validationInfo.ageNotEnough)
+    if (formErrors.dob.includes("validAge"))
       label(style="color: red; font-weight: bold;", for="email") You must be at least 18 years old
     input(name="dob", type="date", value=userInfo.dob, placeholder="Date of Birth", required)
     input(type="submit", class="button", value="Save")

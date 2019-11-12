@@ -89,7 +89,7 @@ server.get(
     });
 
     var formErrorsObject = {
-      register : {email: [], fname: [], lname: [], dob: [], password: [], passwordConfirm: []},
+      register : {email: [], fname: [], lname: [], dob: [], password: []},
       login: {email: [], password: []}
     };
 
@@ -114,6 +114,34 @@ server.get(
         formErrors: formErrorsObject
       }
     );
+  }
+)
+
+server.get(
+  "/profile",
+  async function (req, res) {
+    if (!logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/loginorregister");}
+    {
+      var masterPageObject = logicLayer.MasterPageController({
+          anonSession: !logicLayer.UserSessionCheck(req.session.userID),
+      });
+
+      var formErrorsObject = {email: [], fname: [], lname: [], dob: [], message: []};
+
+      formErrorsObject = await Object.assign(formErrorsObject, await logicLayer.QueryReader("validationError", await req.query));
+      formErrorsObject = await Object.assign(formErrorsObject, await logicLayer.QueryReader("verificationError", await req.query));
+      formErrorsObject = await Object.assign(formErrorsObject, await logicLayer.QueryReader("saved", await req.query));
+      //
+      var profileInfoObject = await logicLayer.GetProfileDetails(req.session.userID);
+      res.render(
+        "profile",
+        {
+          masterInfo: masterPageObject,
+          formErrors: formErrorsObject,
+          userInfo: profileInfoObject
+        }
+      );
+    }
   }
 )
 
@@ -365,29 +393,26 @@ server.post(
 server.post(
   "/forgot",
   async (req, res) => {
-    if (logicLayer.UserSessionCheck(req.session.userID))  {res.redirect("/");}  //Just incase users hit the URL randomly
+    if (logicLayer.UserSessionCheck(req.session.userID))  {req.session.destroy();}
+    var errorReport = await logicLayer.ValidationCheck({
+      //Input: {{type}, [subscribedChecks]}
+      [req.body.email]: {type: "email", checks: ["validEmail"]}
+    });
+
+    errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+    if (errorReport.flag) {res.redirect("/forgot"+errorReport.string);}
     else
     {
-      var errorReport = await logicLayer.ValidationCheck({
-        //Input: {{type}, [subscribedChecks]}
-        [req.body.email]: {type: "email", checks: ["validEmail"]}
+      errorReport = await logicLayer.VerificationCheck({
+        [req.body.email]: {type: "email", checks: ["newEmail"]},
       });
+      errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
 
-      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
       if (errorReport.flag) {res.redirect("/forgot"+errorReport.string);}
       else
       {
-        errorReport = await logicLayer.VerificationCheck({
-          [req.body.email]: {type: "email", checks: ["newEmail"]},
-        });
-        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
-
-        if (errorReport.flag) {res.redirect("/forgot"+errorReport.string);}
-        else
-        {
-          var resetSent = await logicLayer.SendResetLink(req.body.email);
-          res.redirect("/forgot"+"?message=resent");
-        }
+        var resetSent = await logicLayer.SendResetLink(req.body.email);
+        res.redirect("/forgot"+"?message=resent");
       }
     }
   }
@@ -424,12 +449,53 @@ server.post(
   }
 )
 
+server.post(
+  "/saveprofile",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))
+    {
+      var errorReport = await logicLayer.ValidationCheck({
+        //Input: {{type}, [subscribedChecks]}
+        [req.body.fname]: {type: "fname", checks: ["notEmpty"]},
+        [req.body.lname]: {type: "lname", checks: ["notEmpty"]},
+        [req.body.email]: {type: "email", checks: ["validEmail"]},
+        [req.body.dob]: {type: "dob", checks: ["validAge"]}
+      });
+
+      errorReport = await logicLayer.QueryBuilder("validationError", errorReport);
+      if (errorReport.flag) {res.redirect("/reverify"+errorReport.string);}
+      else
+      {
+        errorReport = await logicLayer.VerificationCheck({
+          [req.body.email]: {type: "email", checks: ["existingEmail"], params: {userID: req.session.userID}}
+        });
+        errorReport = await logicLayer.QueryBuilder("verificationError", errorReport);
+
+        if (errorReport.flag) {res.redirect("/profile"+errorReport.string);}
+        else
+        {
+          var updated = await logicLayer.SetProfileDetails(req.session.userID, req.body.fname, req.body.lname, req.body.email, req.body.dob);
+          res.redirect("/profile"+"?message=saved");
+        }
+      }
+    }
+    else {res.redirect("/loginorregister");}
+  }
+)
+
 //Listeners-----------------------------------------------------
 server.listen(
   statics.PORT,
   statics.SERVER_IP,  //FIX THIS STUPID 0.0.0.0 THING
   function()
   {
-    console.log("For http, go to " + statics.SERVER_IP + ":"+statics.PORT)
+    var ipString;
+    if (statics.DEV_MODE)
+    {
+      console.log("This server is in development mode, please change this in the statics.js config file along with any other needed tweaks to credentials, addresses, etc.")
+      ipString = "[WHATEVER THIS MACHINE'S IP ADDRESS IS]"
+    }
+    else {ipString = statics.SERVER_IP;}
+    console.log("For http, go to " + ipString + ":"+statics.PORT)
   }
 )

@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const dataLayer = require("./dataLayer");
 const statics = require("./statics");
 
-function RegisterUser(userObject = {})
+async function RegisterUser(userObject = {})
 {
   var sqlRequirementsMet =  userObject.hasOwnProperty("fName") &&
                             userObject.hasOwnProperty("lName") &&
@@ -18,15 +18,15 @@ function RegisterUser(userObject = {})
                             userObject.hasOwnProperty("dob");
   if (sqlRequirementsMet)
   {
-    return dataLayer.CreateUser(
+    return await dataLayer.CreateUser(
       userObject.fName,
       userObject.lName,
       userObject.email,
       userObject.password,
       userObject.dob,
-      GenerateTokenString(),
+      await GenerateTokenString(),
       Date.now(),
-      GenerateVerificationCode(userObject.email),
+      await GenerateVerificationCode(userObject.email),
       false
     );
   }
@@ -76,9 +76,10 @@ async function SendMail(EmaileeAddress, Subject, Body)
   });
 }
 
-function GenerateTokenString()
+async function GenerateTokenString()
 {
-  return crypto.randomBytes(32).toString("hex");
+  var newToken = await crypto.randomBytes(32).toString("hex");
+  return newToken
 }
 
 async function RegenerateVerificationCode(email)
@@ -312,10 +313,16 @@ async function IsVerifiedAccount(email)
   return verificationQuery.verified;
 }
 
-async function IsExistingEmail(email)
+async function IsExistingEmail(email, userID = null)
 {
+
+  userID = userID.userID;//Due to how params are handled this can be assumed to be here.
   var keyQuery = await dataLayer.GetUserKey({email: email});
   if (await keyQuery == null) {return await false;}
+  else if (userID != null)
+  {
+    if (userID == keyQuery) {return await false;}
+  }
   else {return await true;}
 }
 
@@ -393,6 +400,29 @@ async function SetNewPassword(userKey, newPassword)
   return userKey;
 }
 
+async function GetProfileDetails(userID)
+{
+  var queryResults = await dataLayer.ReadUser(userID, ["fName", "lName", "email", "dob"]);
+  var info = {}
+  if (queryResults != null)
+  {
+    info = {
+      fname: queryResults.fName.substring(0,1).toUpperCase() + queryResults.fName.substring(1).toLowerCase(), //A quick and dirty way of sentance casing
+      lname: queryResults.lName.substring(0,1).toUpperCase() + queryResults.lName.substring(1).toLowerCase(),
+      email: queryResults.email,
+      dob: queryResults.dob
+    };
+    return info;
+  }
+  return null;
+}
+
+async function SetProfileDetails(userID, fname, lname, email, dob)
+{
+  var queryResults = await dataLayer.UpdateUser(userID, {fName: fname.toLowerCase(), lName: lname.toLowerCase(), email: email, dob: dob});
+  return queryResults;
+}
+
 //Functions exported
 module.exports = {
   RegisterUser,
@@ -407,5 +437,7 @@ module.exports = {
   SendResetLink,
   SearchToken,
   SetNewPassword,
-  RegenerateVerificationCode
+  RegenerateVerificationCode,
+  GetProfileDetails,
+  SetProfileDetails
 }
