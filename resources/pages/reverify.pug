@@ -7,9 +7,9 @@ block pageContent
 				h3 Resend a verification code
 				p Enter the email address associated with your account and we will resend you a new verification code.
 				div(class="formboxDiv")
-					if (validationInfo.email.includes("existingEmail"))
+					if (messagesInfo.email.includes("existingEmail"))
 						label(style="color: red; font-weight: bold;", for="givenName") No account found by that email address
-					else if (validationInfo.email.includes("newEmail"))
+					else if (messagesInfo.email.includes("newEmail"))
 						label(style="color: red; font-weight: bold;", for="givenName") Invalid email address
 					input(name="email", id="email", type="email", placeholder="Email Address", required)
 				input(type="submit", formaction="/reverify", class="button", value="Log in", style="width: 90%; text-align")

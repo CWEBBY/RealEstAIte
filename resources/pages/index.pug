@@ -1,4 +1,20 @@
 extends master
 
 block pageContent
-  form(class="banner")
+  div(style="height: 3rem;")
+  div(class="banner")
+    button(type="button", onclick="SwitchSearch('buy')") Buy
+    button(type="button", onclick="SwitchSearch('rent')") Rent
+    label(for="searchBy", style="color: white") Search by
+    select(id="searchOptions", onchange="UpdateSearchBarPlaceholder('searchOptions')", name="searchBy")  
+      option(value="suburb") Suburb
+      option(value="postcode") Postcode
+      option(value="state") State
+      option(value="region") Region
+    div(id="buyBox", class="searchBox")
+      form(id="buySearch")
+        input(id="buyBar", class="searchBar", type="text", name="search", placeholder="Search by Suburb", required)
+    div(id="rentBox", class="searchBox")
+      form(id="rentSearch")
+        input(id="rentBar", class="searchBar", type="text", name="search", placeholder="Search by Suburb", required)
+    

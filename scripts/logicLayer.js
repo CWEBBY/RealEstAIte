@@ -2,105 +2,64 @@
 //The following module acts as a 'business' logic layer, with an attempt at keeping things as as object oriented as possible.
 //Modules
 //-Built in
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
+const nodemailer = require('nodemailer'); //For the mailing service
+const crypto = require('crypto'); //For the hashing of random bytes in tokens
 
 //-Custom
 const dataLayer = require("./dataLayer");
 const statics = require("./statics");
 
+//User functions
 async function RegisterUser(userObject = {})
-{
+{//These conditions must be met for the object to be added to the DB.
   var sqlRequirementsMet =  userObject.hasOwnProperty("fName") &&
                             userObject.hasOwnProperty("lName") &&
                             userObject.hasOwnProperty("email") &&
                             userObject.hasOwnProperty("password") &&
                             userObject.hasOwnProperty("dob");
   if (sqlRequirementsMet)
-  {
-    return await dataLayer.CreateUser(
+  {//Downside (in this case) to relational DBs.... you need to be specific about what you put in it.
+    return await dataLayer.CreateUser(  //Add the data handed in.
       userObject.fName,
       userObject.lName,
       userObject.email,
       userObject.password,
       userObject.dob,
-      await GenerateTokenString(),
-      Date.now(),
-      await GenerateVerificationCode(userObject.email),
-      false
+      await GenerateTokenString(),  //Generate a first token
+      Date.now(), //Generate expiry for that token (now, so it doesn't matter, it is not valid)
+      await GenerateVerificationCode(userObject.email), //Generate verification code
+      false//set verification status.
     );
   }
   else {return null}
 }
 
-function SetUser(userKey, fields = {})
-{
-  if (userKey != null)
-  {
-    if (fields.length == 0) {return dataLayer.ReadUser(userKey);}
-    else
-    {
-      var fieldString = "";
-      for (var fieldIndex = 0; fieldIndex < fields.length; fieldIndex++)
-      {
-        if (fieldIndex != 0) {fieldString += ",";}
-        fieldString += fields[fieldIndex].toString();
-      }
-      return dataLayer.ReadUser(userKey, fieldIndex);
-    }
-  }
-  else {return null}
-}
-
-//Functions
-async function SendMail(EmaileeAddress, Subject, Body)
-{
-  var sender = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: statics.EMAIL_ADDRESS,
-      pass: statics.EMAIL_PASSWORD
-    }
-  });
-
-  var mailOptions = {
-    from: statics.EMAIL_ADDRESS,
-    to: EmaileeAddress,
-    subject: Subject,
-    text: Body
-  };
-
-  sender.sendMail(mailOptions, function(error, info){//possible rewrite for async await
-    if (error) { console.log(error);}
-    sender.close();
-  });
-}
-
+//Token and Verification
 async function GenerateTokenString()
-{
+{//This generates 32bytes of noise in hex and translates to a string, this is the token, it gets added to the resetpassword links to allow as auth for password changes.
   var newToken = await crypto.randomBytes(32).toString("hex");
   return newToken
 }
 
 async function RegenerateVerificationCode(email)
-{
+{//This function is just an addition to the one below but it has to also change the user's code in the DB.
   var newCode = await GenerateVerificationCode(email);
   var userKey = await dataLayer.GetUserKey({email: email});
   if (userKey != null)
   {
-    var setQuery = await dataLayer.UpdateUser(userKey, {latestVerificationCode: newCode});
-    return setQuery;
+    var setQuery = await dataLayer.UpdateUser(userKey, {latestVerificationCode: newCode});  //Passing the key for the code as that is the only thing that needs changing.
+    return setQuery;  //Return the result incase, for whatever reason, it needs to be read.
   }
-  else {return null;}
+  return userKey; //or null, which wuld be userKey if the email did not get found.
 }
 
 async function GenerateVerificationCode(email)
 {
-  var code = await crypto.randomBytes(2).toString("hex");
-  if (statics.DEV_MODE) {console.log("Verification code for " + email + " is as follows: " + code);}
+  var code = await crypto.randomBytes(2).toString("hex");// Use the randomBytes function to get 4 chars of random for an alpha numeric verification code code.
+  if (statics.DEV_MODE) {console.log("Verification code for " + email + " is as follows: " + code);}  //It helps to have a 3rd party terminal that lets you click links if dev mode in statics is enabled.
   else
-  {
-    SendMail(
+  {//Otherwise, send the code to the user.
+    SendMail( //This, with further time, could be made prettier with html and css in the email.
       email,
       "Verification Code",
       "Hello, your new verification code, used to verify your account on Real Estaite so it can be actiivated, is as follows: " + code
@@ -109,8 +68,11 @@ async function GenerateVerificationCode(email)
   return code;
 }
 
+//Page utils
 function UserSessionCheck(sessionedUserID, requiredUserID = null)
-{
+{//Used a lot, this simply checks for a user ID given a session object.
+  //If a second param is supplied, the function will compare the two and return whether the two are the same.
+  //Otherwise it will just check to see if there is a userID in session.
   if (sessionedUserID!=null)
   {
     if (requiredUserID != null) //Check to see if the user is valid against the needed ID
@@ -125,13 +87,13 @@ function UserSessionCheck(sessionedUserID, requiredUserID = null)
 function MasterPageController(masterParams = {})
 {
   //Defaults
-  var masterInfo = {
+  var masterInfo = {  //Default values for the master page.
     anonSession: true,
     linksBlocked: false,
-    pageTitle: "Real Est(ai)te | The good solution to real estate"
+    pageTitle: "Real Est(ai)te | The good solution to real estate"  //Settable in case of custom titles for search results for example.
   }
 
-  //The below is really only here for clarity.
+  //The below is really only here for clarity. This could be done in 2 lines for countless keys, but it is like this for readability.
   if (masterParams.hasOwnProperty("anonSession")){masterInfo.anonSession = masterParams.anonSession;}
   if (masterParams.hasOwnProperty("linksBlocked")){masterInfo.linksBlocked = masterParams.linksBlocked;}
   if (masterParams.hasOwnProperty("pageTitle")){masterInfo.pageTitle = masterParams.pageTitle;}
@@ -140,7 +102,8 @@ function MasterPageController(masterParams = {})
 }
 
 async function ValidationCheck(checkParams)
-{
+{//This, as well as VerificationCheck, are the start of some rather complex-to-follow code.
+  //COMMENT MORE VERBOSLY
   functionKeys = await {
     "validEmail": IsValidEmail,
     "validPassword": IsValidPassword,
@@ -152,7 +115,8 @@ async function ValidationCheck(checkParams)
 }
 
 async function VerificationCheck(checkParams)
-{
+{//This, as well as ValidationCheck, are the start of some rather complex-to-follow code.
+  //COMMENT MORE VERBOSLY
   functionKeys = await {
     "newEmail": await IsNewEmail,
     "existingEmail": await IsExistingEmail,
@@ -164,6 +128,7 @@ async function VerificationCheck(checkParams)
 
 async function InputCheck(functionKeys, checkParams)
 {
+  //COMMENT MORE VERBOSLY
   var report = {};
   var errorCount = 0;
   var secretsIndices = [];
@@ -266,94 +231,15 @@ async function QueryBuilder(headMessage, validationCheckObject)
   return await parsedReport;
 }
 
-//Validation Helpers
-async function IsValidEmail(email)
-{
-  if (!email.includes("@") || !email.includes(".")) {return await true;}
-  return await false;
+async function GetMessagesFromString(arrayOfMessagesToPayAttentionTo, source)
+{//This function takes an array of messages to look for from the source string.
+  //It returns the result which in most cases gets sent straight to the page rendering returning an object of messages to use for PugJS.
+  var messagesObject = {};
+  for (var messageIndex = 0; messageIndex < arrayOfMessagesToPayAttentionTo.length; messageIndex++) {messagesObject = await Object.assign(messagesObject, await QueryReader(arrayOfMessagesToPayAttentionTo[messageIndex], source));}
+  return await messagesObject;
 }
 
-async function IsNotEmpty(string)
-{
-  if (string != "" &&  string.length > 0 && string != null) {return await false;}
-  return await true;
-}
-
-async function IsValidPassword(newPassword)
-{
-  if (newPassword.length >= 8) {return await false;}
-  return await true;
-}
-
-async function IsValidAge(dob)
-{
-  if (await CalculateAge(dob) >= 18.0) {return await false;}
-  return await true;
-}
-
-async function IsValidCode(code)
-{
-  if (code.length == 4) {return await false;}
-  return await true;
-}
-
-async function IsNewEmail(email)
-{
-  var keyQuery = await dataLayer.GetUserKey({email: email});
-  if (await keyQuery == null) {return await true;}
-  else {return await false;}
-}
-
-async function IsVerifiedAccount(email)
-{
-  var keyQuery = await dataLayer.GetUserKey({email: email});
-  var verificationQuery = await dataLayer.ReadUser(keyQuery, ["verified"]);
-  if (verificationQuery.verified == 0) {verificationQuery.verified = false;}  //SQLisms
-  if (verificationQuery.verified == 1) {verificationQuery.verified = true;}  //SQLisms
-  return verificationQuery.verified;
-}
-
-async function IsExistingEmail(email, userID = null)
-{
-
-  userID = userID.userID;//Due to how params are handled this can be assumed to be here.
-  var keyQuery = await dataLayer.GetUserKey({email: email});
-  if (await keyQuery == null) {return await false;}
-  else if (userID != null)
-  {
-    if (userID == keyQuery) {return await false;}
-  }
-  else {return await true;}
-}
-
-async function IsCorrectPassword(password, paramsObject = null)
-{
-  if (paramsObject == null) {return false;}
-  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
-  if (keyQuery != null)
-  {
-    var passwordQuery = await dataLayer.ReadUser(keyQuery, ["userPassword"]);
-    if (passwordQuery.userPassword == password) {return await false;}
-  }
-  return await true;
-}
-
-async function IsCorrectCode(code, paramsObject = null)
-{
-  if (paramsObject == null) {return await false;}
-  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
-  var codeQuery = await dataLayer.ReadUser(keyQuery, ["latestVerificationCode"]);
-  if (codeQuery.latestVerificationCode == code) {return await false;}
-  return await true;
-}
-
-async function CalculateAge(dob)
-{
-  var now = new Date().getTime();
-  var birth = new Date(dob).getTime();
-  return await ((now - birth) / (1000 * 3600 * 24)) / 365.25;
-}
-
+//User functions
 async function LogUserIn(email)
 {
   var verified = await IsVerifiedAccount(email);
@@ -423,15 +309,139 @@ async function SetProfileDetails(userID, fname, lname, email, dob)
   return queryResults;
 }
 
-//Functions exported
+//Improv validation
+async function IsValidEmail(email)
+{
+  if (!email.includes("@") || !email.includes(".")) {return await true;}
+  return await false;
+}
+
+async function IsNotEmpty(string)
+{
+  if (string != "" &&  string.length > 0 && string != null) {return await false;}
+  return await true;
+}
+
+async function IsValidPassword(newPassword)
+{
+  if (newPassword.length >= 8) {return await false;}
+  return await true;
+}
+
+async function IsValidAge(dob)
+{
+  if (await CalculateAge(dob) >= 18.0) {return await false;}
+  return await true;
+}
+
+async function IsValidCode(code)
+{
+  if (code.length == 4) {return await false;}
+  return await true;
+}
+
+async function IsNewEmail(email)
+{
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+  if (await keyQuery == null) {return await true;}
+  else {return await false;}
+}
+
+async function IsVerifiedAccount(email)
+{
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+  var verificationQuery = await dataLayer.ReadUser(keyQuery, ["verified"]);
+  if (verificationQuery.verified == 0) {verificationQuery.verified = false;}  //SQLisms, its a 1 bit number, not a bool
+  if (verificationQuery.verified == 1) {verificationQuery.verified = true;}  //SQLisms, its a 1 bit number, not a bool
+  return verificationQuery.verified;
+}
+
+async function IsExistingEmail(email, userID = {})
+{
+  if (userID.hasOwnProperty("userID")) {userID = userID.userID;}
+  else {userID = null;}
+
+  var keyQuery = await dataLayer.GetUserKey({email: email});
+
+  if (await keyQuery == null) {return await false;}
+  else if (userID != null)
+  {
+    if (userID == keyQuery) {return await false;}
+  }
+  else {return await true;}
+}
+
+async function IsCorrectPassword(password, paramsObject = null)
+{
+  if (paramsObject == null) {return false;}
+  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
+  if (keyQuery != null)
+  {
+    var passwordQuery = await dataLayer.ReadUser(keyQuery, ["userPassword"]);
+    if (passwordQuery.userPassword == password) {return await false;}
+  }
+  return await true;
+}
+
+async function IsCorrectCode(code, paramsObject = null)
+{
+  if (paramsObject == null) {return await false;}
+  var keyQuery = await dataLayer.GetUserKey({email: paramsObject.email});
+  var codeQuery = await dataLayer.ReadUser(keyQuery, ["latestVerificationCode"]);
+  if (codeQuery.latestVerificationCode == code) {return await false;}
+  return await true;
+}
+
+//General
+async function SendMail(EmaileeAddress, Subject, Body)
+{
+  var sender = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: statics.EMAIL_ADDRESS,
+      pass: statics.EMAIL_PASSWORD
+    }
+  });
+
+  var mailOptions = {
+    from: statics.EMAIL_ADDRESS,
+    to: EmaileeAddress,
+    subject: Subject,
+    text: Body
+  };
+
+  sender.sendMail(mailOptions, function(error, info){//possible rewrite for async await
+    if (error) { console.log(error);}
+    sender.close();
+  });
+}
+
+async function CalculateAge(dob)
+{
+  var now = new Date().getTime();
+  var birth = new Date(dob).getTime();
+  return await ((now - birth) / (1000 * 3600 * 24)) / 365.25;
+}
+
+//IN DEVELOPMENT
+async function GetListings()
+{
+  var result = await dataLayer.GetListingsKey();
+  return result;
+}
+//IN DEVELOPMENT
+
 module.exports = {
-  RegisterUser,
-  UserSessionCheck,
+  //Page exports:
   MasterPageController,
+  UserSessionCheck,
   ValidationCheck,
-  QueryReader,
-  QueryBuilder,
   VerificationCheck,
+  QueryBuilder,
+  GetMessagesFromString,
+
+  //User exports:
+  RegisterUser,
   IsVerifiedAccount,
   LogUserIn,
   SendResetLink,
@@ -439,5 +449,11 @@ module.exports = {
   SetNewPassword,
   RegenerateVerificationCode,
   GetProfileDetails,
-  SetProfileDetails
+  SetProfileDetails,
+
+  //Listing exports:
+
+  //IN DEVELOPMENT
+  GetListings
+  //IN DEVELOPMENT
 }

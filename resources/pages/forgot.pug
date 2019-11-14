@@ -7,11 +7,11 @@ block pageContent
   form(action="/forgot", method="post")
     p Type your email address  in to have a reset link sent to you.
     p Note, if you are signed in and are changing your password you will be signed out.
-    if (formErrors.email.includes("validEmail"))
+    if (messagesInfo.email.includes("validEmail"))
       label(style="color: red; font-weight: bold;", for="email") Not a valid email address
-    else if (formErrors.email.includes("newEmail"))
+    else if (messagesInfo.email.includes("newEmail"))
       label(style="color: red; font-weight: bold;", for="email") Account with that email address does not exist
     input(name="email", type="email", placeholder="Email Address", required)
     input(type="submit", class="button", value="Send Link")
-    if (formErrors.message.includes("resent"))
+    if (messagesInfo.message.includes("resent"))
       p A password reset link was sent to your email address

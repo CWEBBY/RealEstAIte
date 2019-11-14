@@ -7,17 +7,17 @@ block pageContent
 				h3 Verify your account to sign in
 				p We sent you an email with a 4 digit verification code, sign in with your email and password with that code to verify your account.
 				div(class="formboxDiv")
-					if (validationInfo.emailNotUsed)
+					if (messagesInfo.emailNotUsed)
 						label(style="color: red; font-weight: bold;", for="givenName") No account found by that email address
-					else if (validationInfo.emailNotValid)
+					else if (messagesInfo.emailNotValid)
 						label(style="color: red; font-weight: bold;", for="givenName") Invalid email address
 					input(name="email", id="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					if (validationInfo.passwordNotValid)
+					if (messagesInfo.passwordNotValid)
 						label(style="color: red; font-weight: bold;", for="givenName") Invalid Password
 					input(name="password", type="password", placeholder="Password", required)
 				div(class="formboxDiv")
-					if (validationInfo.codeNotCorrect)
+					if (messagesInfo.codeNotCorrect)
 						label(style="color: red; font-weight: bold;", for="givenName") This is not the correct code
 					input(name="code", type="text", placeholder="4 Digit Verification Code", required)
 				div(style="text-align: center; ")

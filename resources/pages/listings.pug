@@ -1,0 +1,12 @@
+extends master
+
+block pageContent
+  div(style="height: 3rem;")
+  ul
+      each val, index in listingsInfo
+        div(class="card")
+          img(src="./public/images/imageNotFound.png", style="width: 100%;")
+          div(class="container")
+            h4= val.price
+            p= val.street_num+" "+val.street_name+", "+val.suburb
+            p= "Beds: " + val.bed + " | " + "Baths: " + val.bath + " | " + "Cars: " + val.car

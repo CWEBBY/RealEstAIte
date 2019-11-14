@@ -5,27 +5,27 @@ block pageContent
 			form(method="post", action="/register", class="formbox")
 				h3 Create an account
 				div(class="formboxDiv formBoxName", style="padding-right: 2%;")
-					if (formErrors.register.fname.includes("notEmpty"))
+					if (messagesInfo.register.fname.includes("notEmpty"))
 						label(style="color: red; font-weight: bold;", for="givenName") Invalid first name
 					input(name="givenName", type="text", placeholder="First Name", required)
 				div(class="formboxDiv formBoxName")
-					if (formErrors.register.lname.includes("notEmpty"))
+					if (messagesInfo.register.lname.includes("notEmpty"))
 						label(style="color: red; font-weight: bold;", for="surname") Invalid last name
 					input(name="surname", type="text", placeholder="Surname", required)
 				div(class="formboxDiv")
-					if (formErrors.register.email.includes("validEmail"))
+					if (messagesInfo.register.email.includes("validEmail"))
 						label(style="color: red; font-weight: bold;", for="email") Email address not valid
-					else if (formErrors.register.email.includes("newEmail"))
+					else if (messagesInfo.register.email.includes("newEmail"))
 						label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
 					input(name="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					if (formErrors.register.dob.includes("validAge"))
+					if (messagesInfo.register.dob.includes("validAge"))
 						label(style="color: red; font-weight: bold;", for="dob") You need to be over 18 years old
 						br
 					label(for="dob", style="font-size: 1.25rem;") Date of Birth: 
 					input(name="dob", type="date", placeholder="Date of Birth", required, style="max-width: 100%; text-align: center")
 				div(class="formboxDiv")
-					if (formErrors.register.password.includes("validPassword"))
+					if (messagesInfo.register.password.includes("validPassword"))
 						label(style="color: red; font-weight: bold;", for="password") Password is invalid
 					input(name="password", type="password", placeholder="Password (Min. 8 characters)", required)
 				div(class="formboxDiv")
@@ -42,15 +42,15 @@ block pageContent
 			form(method="post", class="formbox")
 				h3 ...or log in
 				div(class="formboxDiv")
-					if (formErrors.login.email.includes("validPassword"))
+					if (messagesInfo.login.email.includes("validPassword"))
 						label(style="color: red; font-weight: bold;", for="email") Email address not valid
-					else if (formErrors.login.email.includes("newEmail"))
+					else if (messagesInfo.login.email.includes("newEmail"))
 						label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
 					input(name="email", type="email", placeholder="Email Address", required)
 				div(class="formboxDiv")
-					if (formErrors.login.password.includes("validPassword"))
+					if (messagesInfo.login.password.includes("validPassword"))
 						label(style="color: red; font-weight: bold;", for="password") Password is invalid
-					else if (formErrors.login.password.includes("correctPassword"))
+					else if (messagesInfo.login.password.includes("correctPassword"))
 						label(style="color: red; font-weight: bold;", for="password") Password is incorrect
 					input(name="password", type="password", placeholder="Password", required)
 				div(style="text-align: center;")
