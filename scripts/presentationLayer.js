@@ -156,7 +156,7 @@ server.get(
         {
           masterInfo: masterPageObject,
           messagesInfo: messagesObject,
-          userInfo: profileInfoObject
+          userInfo: userObject
         }
       );
     }
