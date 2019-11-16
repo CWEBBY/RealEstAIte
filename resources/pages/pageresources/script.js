@@ -23,14 +23,10 @@ function ToggleProfileMenu()
 }
 
 //Index search box
-function UpdateSearchBarPlaceholder(selfID)
+function UpdateSearchBarPlaceholder(val)
 {
-  var self = document.getElementById(selfID);
-  var searchBars = document.getElementsByClassName("searchBar");
-  for (var barIndex = 0; barIndex < searchBars.length; barIndex++)
-  {
-    searchBars[barIndex].placeholder = "Search by " + self.value.substring(0, 1).toUpperCase() + self.value.substring(1).toLowerCase();
-  }
+  var searchBar = document.getElementById("searchBar");
+  searchBar.placeholder = "🔍  Search by " + val.substring(0, 1).toUpperCase() + val.substring(1).toLowerCase();
 }
 
 //PPW
