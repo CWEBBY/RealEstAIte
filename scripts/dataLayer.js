@@ -130,15 +130,31 @@ async function GetUserKey(searchTerms = {})
 async function QueryDatabase(command)
 {//Given more time, a fully async system would be implemented, actually hitting the DB will have to do for now.
   //I wanted a single method of hitting the database as a method of query control.
-  var dbConnection = await mysql.createConnection({
-    host: statics.SERVER_IP,
-    user: statics.DATABASE_USER,
-    password: statics.DATABASE_PASSWORD,
-    database: statics.DATABASE_NAME,
-    Promise: bluebird
-  }); //I don't pool connections as they may drop out, needing a try catch block (which I didn't have time to implement, trying to just get it to work) and I didn't want to have a single connection always open for the same reason, so connect to the DB for each query.
-  var queryResult = await dbConnection.query(command);  //The SOLE CAUSE of all the async in this project, this takes a few millis, enough to cause race conditions elsewhere, so I block the thread until it is done.
-  dbConnection.end();
+  var queryResult = null;
+  var dbConnection = null;
+  try
+  {
+    dbConnection = await mysql.createConnection({
+      host: statics.SERVER_IP,
+      user: statics.DATABASE_USER,
+      password: statics.DATABASE_PASSWORD,
+      database: statics.DATABASE_NAME,
+      Promise: bluebird
+    }); //I don't pool connections as they may drop out, needing a try catch block (which I didn't have time to implement, trying to just get it to work) and I didn't want to have a single connection always open for the same reason, so connect to the DB for each query.
+    queryResult = await dbConnection.query(command);  //The SOLE CAUSE of all the async in this project, this takes a few millis, enough to cause race conditions elsewhere, so I block the thread until it is done.
+    dbConnection.end();
+  }
+  catch (err)
+  {
+    console.log("BELOW IS AN ERROR FROM DATABASE CONNECTION:");
+    console.log("*******************************************");
+    console.log(err)
+    console.log("Returning empty records.")
+    console.log("*******************************************");
+    return {records: [], fields: []};
+    //I threw a try catch in for the most important part of the SQL hit. If this fails, at least it shouldn't crash. I would need to actually return a value that can be seen by external functions that know whether or not this failed, time permitting.
+  }
+
   var records = queryResult[0]; //pretty explanatory, records are returned by the module as the first index, fields in the second
   var fields = queryResult[1];  //I just return these as key/values.
   return {records: records, fields: fields};
@@ -146,15 +162,86 @@ async function QueryDatabase(command)
 
 //-Listings
 //IN DEVELOPMENT
-async function CreateListings(){}
-async function ReadListings(){}
-async function UpdateListings(){}
-async function DeleteListings(){}
-async function GetListingsKey()
+async function ReadListings(queryObject = null)
 {
-  var query = await QueryDatabase("SELECT * FROM listings;");
-  query = query.records;
-  return query;
+  if (queryObject != null)
+  {
+    var conditionals = [];
+    var conditionalString = "";
+
+    //A bunch of parsing is done here to create the q string
+    //Get the type of listing
+    if (queryObject.hasOwnProperty("type"))
+    {
+      var category = queryObject.type;
+      if (category == "buy") {category = "sale";} //field name difference
+      conditionals.push("category = '" + category + "'");
+    }
+
+    if (queryObject.hasOwnProperty("minBeds") && queryObject.hasOwnProperty("maxBeds")) {conditionals.push("bed BETWEEN " + queryObject.minBeds.toString() + " AND " + queryObject.maxBeds.toString());}
+    else
+    {
+      if (queryObject.hasOwnProperty("minBeds")) {conditionals.push("bed > " + queryObject.minBeds.toString());}
+      else if (queryObject.hasOwnProperty("maxBeds")) {conditionals.push("bed < " + queryObject.maxBeds.toString());}
+    }
+
+    //The below code would be the checks for price, the issue is that there is so much variation on how the price comes in from the API that it is hard to design for, the API being scraped from is not exposing the raw floating point price. Only the string. This is a major hit to the functionality, but with not enough time to work around it, it must be excluded.
+    /*
+    if (queryObject.hasOwnProperty("minPrice") && queryObject.hasOwnProperty("maxPrice")) {conditionals.push("numericPrice BETWEEN " + queryObject.minPrice.toString() + " AND " + queryObject.maxPrice.toString());}
+    else
+    {
+      if (queryObject.hasOwnProperty("minPrice")) {conditionals.push("numericPrice > " + queryObject.minPrice.toString());}
+      else if (queryObject.hasOwnProperty("maxPrice")) {conditionals.push("numericPrice < " + queryObject.maxPrice.toString());}
+    }
+    */
+
+    if (queryObject.hasOwnProperty("searchBy") && queryObject.hasOwnProperty("searchTerm"))
+    {
+      if (queryObject.searchBy == "suburb") {conditionals.push("LOWER(suburb) = '" + queryObject.searchTerm.toString().toLowerCase()+"'");}
+      else if (queryObject.searchBy == "postcode") {conditionals.push("postcode = " + queryObject.searchTerm);}
+      else if (queryObject.searchBy == "state") {conditionals.push("LOWER(state) = '" + queryObject.searchTerm.toString().toLowerCase()+"'");}
+      //else if (queryObject.searchBy == "region") {} //Cant be used because region was not obtainable from db in time
+    }
+
+    //After all of that, run a loop that concats all these conditional strings into a single one.
+    for (var conditionalIndex = 0; conditionalIndex < conditionals.length; conditionalIndex++)
+    {
+      conditionalString += " " + conditionals[conditionalIndex] + " AND";
+    }
+    conditionalString = " WHERE" + conditionalString.substring(0,conditionalString.length-4); //Add where and remove trailing and.
+
+    var query = await QueryDatabase("SELECT * FROM listings" + conditionalString + ";");
+    //var query = await QueryDatabase("SELECT * FROM listings;");
+    query = query.records;
+    if (query.length > 0)
+    {
+      for (var resultIndex = 0; resultIndex < query.length; resultIndex++)
+      {
+        var imageQuery = await QueryDatabase("SELECT imageURL FROM images WHERE listingid = " + query[resultIndex].id + ";" );
+        if (imageQuery.records.length > 0) {query[resultIndex].imageURL = imageQuery.records[0].imageURL;}
+        else {query[resultIndex].imageURL = null}
+      }
+    }
+    return query;
+  }
+  else {return null}
+}
+
+async function ReadListing(id)
+{//Not as complicated as the last function.
+  if (id != null) //Simply checks if key  is null,  which it will be if the only calling function does not get a key param, and if not null
+  {
+    var query = await QueryDatabase("SELECT * FROM listings" + " WHERE id = " + id +";");//Hits the db for the exact listing
+    query = query.records[0]; //MySQL module-ism, it gives an array of records, where there will only be one, that is, 0th index.
+    if (query)
+    {
+      var imageQuery = await QueryDatabase("SELECT imageURL FROM images WHERE listingid = " + id + ";" );
+      if (imageQuery.records.length > 0) {query.imageURL = imageQuery.records[0].imageURL;}
+      else {query.imageURL = null}
+    }
+    return query;
+  }
+  else {return null}
 }
 //IN DEVELOPMENT
 
@@ -167,9 +254,6 @@ module.exports = {
   GetUserKey,
 
   //Listing exports:
-  CreateListings,
   ReadListings,
-  UpdateListings,
-  DeleteListings,
-  GetListingsKey
+  ReadListing
 };

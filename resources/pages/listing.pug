@@ -1,0 +1,31 @@
+extends master
+block pageContent
+  include listingsmaster
+  if (pageInfo.listingExists)
+    if (listingInfo.imageURL == null)
+      -var imageSource = "/public/images/imageNotFound.png";//Get the source based on whether the url index is found
+    else
+      -var imageSource = listingInfo.imageURL;
+    -var altString = street_num + " " + listingInfo.street_name + " " + listingInfo.suburb;
+    if (listingInfo.unit_num != null) 
+      -var unitAddress = listingInfo.unit_num + "/";
+    else
+      -var unitAddress = "";
+    if (listingInfo.property_type != null) 
+      if (listingInfo.property_type = "apartmentUnitFlat") 
+        -var propertyType = "Apartment / Unit / Flat";
+      else
+        -var propertyType = listingInfo.property_type;
+    else
+      -var propertyType = " ";
+    if (listingInfo.car == null)
+      -var car = "0"
+    else
+      -var car = listingInfo.car
+    img(src=imageSource, alt=altString)
+    p= listingInfo.price
+    p= unitAddress + listingInfo.street_num +  " " + listingInfo.street_name + " " + listingInfo.suburb + ", " + listingInfo.postcode
+    p= "Beds: " + listingInfo.bed + " | " + "Baths: " + listingInfo.bath + " | " + "Cars: " + car + " | " + propertyType
+    p= listingInfo.property_description
+  else
+    p This is not a valid listing, please try searching for the property via our property search.

@@ -77,7 +77,8 @@ server.get(
     //I made a suggestion of including policy in the scope document.
     //The page content should have been changed by sumbission to conform with AUS privacy policy.
     var masterPageObject = logicLayer.MasterPageController({anonSession:  !logicLayer.UserSessionCheck(req.session.userID)});
-    res.render("policy", {masterInfo: masterPageObject});
+    var contactObject = {email: statics.EMAIL_ADDRESS};
+    res.render("policy", {masterInfo: masterPageObject, contactObject});
   }
 )
 
@@ -537,15 +538,69 @@ server.get(
         anonSession:  !logicLayer.UserSessionCheck(req.session.userID)
     });
 
-    var listingData = await logicLayer.GetListings();
+    var listingsObject = await logicLayer.GetListings(req.query);
+
+    //pageinfo
 
     res.render(
       "listings",
       {
         masterInfo: masterPageObject,
-        listingsInfo: listingData
+        listingsInfo: listingsObject,
+
       }
     );
+  }
+)
+
+server.get(
+  "/listing/:id",
+  async function (req, res) {
+    //
+    var masterPageObject = logicLayer.MasterPageController({
+        anonSession:  !logicLayer.UserSessionCheck(req.session.userID)
+    });
+
+    var listingObject = {};
+    var pageObject = {listingExists: false};
+
+    if (req.params.id)
+    {
+      listingObject = await logicLayer.GetListing(req.params.id);
+      if (listingObject)
+      {
+        pageObject.listingExists = true;
+      }
+    }
+
+    res.render(
+      "listing",
+      {
+        masterInfo: masterPageObject,
+        listingInfo: listingObject,
+        pageInfo: pageObject
+      }
+    );
+  }
+)
+
+server.post(
+  "/",
+  async (req, res) => {
+    if (logicLayer.UserSessionCheck(req.session.userID))
+    {
+      //If there is time, this is to link the query to some cool inner workings like a recommender or even just a committing to the database of some sort.
+      //Custom user data from searches would be added from here. The point of input.
+    }
+    //This is a simple redirect with a query string added.
+    var string = "?type=" + req.body.category +
+    "&searchBy=" + req.body.searchBy +
+    "&minBeds=" + req.body.minBeds +
+    "&maxBeds=" + req.body.maxBeds +
+    "&minPrice=" + req.body.minPrice +
+    "&maxPrice=" + req.body.maxPrice +
+    "&searchTerm=" + req.body.search;
+    res.redirect("/listings"+string);
   }
 )
 //IN DEVELOPMENT

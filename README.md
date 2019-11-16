@@ -7,6 +7,8 @@ For server start, use the following instructions:
 1. Either use the Windows shortcut or, in the terminal, type 'nodemon' if you have it installed or 'node main' if you don't.
 2. Navigate to either 127.0.0.1:8080 locally or [THE IP OF THE SYSTEM]:8080 to view the site.  
 
+#NOTE: If something happens to fail, go to the terminal window (inspect error if you wish to) and then type 'rs' (the Node Monitor command for 'restart server'), then, go back to a point prior to the error occurring.  
+
 Project Specs:  
 An N-Tier, SQL and NodeJS real estate website.  
 
@@ -18,3 +20,10 @@ An N-Tier, SQL and NodeJS real estate website.
 --MySQL Workbench v8.  
 
 Created by CW, EG, EM, VD, MMA & LM.  
+
+TODO:  
+URGENT  
+-Fix price filtering
+-Maybe an auxiliary function to bridge user and listing data in some way? Features?
+
+-Stylize  

@@ -33,22 +33,19 @@ function UpdateSearchBarPlaceholder(selfID)
   }
 }
 
-function SwitchSearch(newType)
-{//String as param for any future types of listings, at the moment, just rent and buy.
-  var searchBoxes =  document.getElementsByClassName("searchBox");
-  for (var boxIndex = 0; boxIndex < searchBoxes.length; boxIndex++)
+//PPW
+function UpdatePriceLabels(pricetype)
+{
+  var maxPrice = document.getElementById("maxPriceLabel");
+  var minPrice = document.getElementById("minPriceLabel");
+  if (pricetype == "rent")
   {
-    searchBoxes[boxIndex].style.display = "none";
+    maxPrice.innerHTML = "Price/Week (Max)";
+    minPrice.innerHTML = "Price/Week (Min)";
   }
-
-  if (newType == "rent")
+  else
   {
-    var rentBox = document.getElementById("rentBox");
-    rentBox.style.display = "block";
-  }
-  else if (newType == "buy")
-  {
-    var buyBox = document.getElementById("buyBox");
-    buyBox.style.display = "block";
+    maxPrice.innerHTML = "Price (Max)";
+    minPrice.innerHTML = "Price (Min)";
   }
 }
