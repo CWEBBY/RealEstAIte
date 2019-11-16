@@ -1,0 +1,61 @@
+extends master
+
+block pageContent
+  div(class="banner")
+    div(class="searchField")
+      form(method="post", action="/")
+        h1(class="searchHeading") Search Properties to
+        div(class="rent-buy")
+          select(id="categorySelection", onchange="UpdatePriceLabels(value)", name="category") 
+            option(value="buy") Buy
+            option(value="rent") Rent
+        section
+          input(id="searchBar", class="searchBar", type="text", name="search", placeholder="🔍  Search by Suburb", required)
+        section
+          div(class="searchOptions")
+            div(class="options")
+              //label(for="searchBy", class="searchLabel") Search by
+              select(id="searchOptions", onchange="UpdateSearchBarPlaceholder(value)", name="searchBy", class="searchSelect")  
+                option(style="visibility:hidden;") Search by
+                option(value="suburb") Search by Suburb
+                option(value="postcode") Search by Postcode
+                option(value="state") Search by State
+              div(class="options")
+                //label(for="minBeds", class="searchLabel") Beds (Min)
+                select(id="minBeds", name="minBeds", class="searchSelect")  
+                  option(style="visibility:hidden;") Beds (Min)
+                  option(value="-1") Any
+                  option(value="0") Studio
+                  option(value="1") 1 Bed
+                  option(value="2") 2 Beds
+                  option(value="3") 3 Beds
+                  option(value="4") 4 Beds
+                  option(value="5") 5 Beds
+              div(class="options")
+                //label(for="maxBeds", class="searchLabel") Beds (Max)
+                select(id="maxBeds", name="maxBeds", class="searchSelect")  
+                  option(style="visibility:hidden;") Beds (Max)
+                  option(value="-1") Any
+                  option(value="0") Studio
+                  option(value="1") 1 Bed
+                  option(value="2") 2 Beds
+                  option(value="3") 3 Beds
+                  option(value="4") 4 Beds
+                  option(value="5") 5 Beds
+              div(class="options")
+                //label(id="minPriceLabel", for="minPrice", class="searchLabel") Price (Min)
+                select(id="minPrice", name="minPrice", class="searchSelect") 
+                  option(style="visibility:hidden;") Price (Min)
+                  option(value="-1") Any
+                  - for(var i = 25000; i < 15000000; i+=25000) {
+                      option(value=i)="$"+i
+                  - }
+              div(class="options")
+                //label(id="maxPriceLabel", for="maxPrice", class="searchLabel") Price (Max)
+                select(id="maxPrice", name="maxPrice", class="searchSelect")  
+                  option(style="visibility:hidden;") Price (Max)
+                  option(value="-1") Any
+                  - for(var i = 25000; i < 15000000; i+=25000) {
+                      option(value=i)="$"+i
+                  - }  
+          input(type="submit", class="indexButton", value="Search", style="display:inline;")
