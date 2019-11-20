@@ -7,25 +7,18 @@ block pageContent
 				if (val.imageURL == null)
 					-var imageSource = "/public/images/imageNotFound.png";//Get the source based on whether the url index is found
 				else
-					-var imageSource = val.imageURL;
-				-var altString = street_num + " " + val.street_name + " " + val.suburb;
+					-var imageSource = val.imageURL
+				-var altString = val.street_num + " " + val.street_name + " " + val.suburb;
 				if (val.car == null)
 					-var car = "0"
 				else
 					-var car = val.car
 				img(src=imageSource, alt=altString, style="width: 100%;")
 				div(class="listingTileDescription")
-					h3= val.price
+					h2(style="color: rgb(20, 20, 20);")= val.price
 					if (val.unit_num != null) 
 						-var unitAddress = val.unit_num + "/";
 					else
 						-var unitAddress = "";
-					if (val.property_type != null) 
-						if (val.property_type = "apartmentUnitFlat") 
-							-var propertyType = "Apartment / Unit / Flat";
-						else
-							-var propertyType = val.property_type;
-					else
-						-var propertyType = "";
 					p= unitAddress + val.street_num + " " + val.street_name + " " + val.suburb
-					p= "Beds: " + val.bed + " | " + "Baths: " + val.bath + " | " + "Cars: " + car + " | " + propertyType
+					p(style="color: red;")= "Beds: " + val.bed + " | " + "Baths: " + val.bath + " | " + "Cars: " + car

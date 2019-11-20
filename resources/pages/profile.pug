@@ -1,28 +1,33 @@
 extends master
 
 block pageContent
-  br
-  br
-  br
-  if (messagesInfo.message.includes("saved"))
-    p Your information has been updated.
-  form(action="/saveprofile", method="post")
-    if (messagesInfo.fname.includes("notEmpty"))
-      label(style="color: red; font-weight: bold;", for="email") Please enter a first name
-    input(type="text", name="fname", value=userInfo.fname, placeholder="First Name", required)
-    if (messagesInfo.lname.includes("notEmpty"))
-      label(style="color: red; font-weight: bold;", for="email") Please enter a last name
-    input(type="text", name="lname", value=userInfo.lname, placeholder="Last Name", required)
-    if (messagesInfo.email.includes("newEmail"))
-      label(style="color: red; font-weight: bold;", for="email") Account already exists with this email address
-    else if (messagesInfo.email.includes("validEmail"))
-      label(style="color: red; font-weight: bold;", for="email") Email address is not valid
-    input(name="email", type="email", value=userInfo.email, placeholder="Email Address", required)
-    if (messagesInfo.dob.includes("validAge"))
-      label(style="color: red; font-weight: bold;", for="email") You must be at least 18 years old
-    input(name="dob", type="date", value=userInfo.dob, placeholder="Date of Birth", required)
-    input(type="submit", class="button", value="Save")
-    
-  a(href="/forgot", class="button") Change Password
-
-  p All information stored directly on user goes here.
+  div(class="banner")
+    div(class="searchField")
+      br
+      h1 Profile
+      br
+      h2 Your Details
+      if (messagesInfo.message.includes("saved"))
+        p(style="color: red; font-weight: bold;") Your information has been updated.
+      form(action="/saveprofile", method="post")
+        if (messagesInfo.fname.includes("notEmpty"))
+          label(style="color: red; font-weight: bold;", for="email") Please enter your first name.
+        h3 First Name
+        input(type="text", name="fname", value=userInfo.fname, placeholder="First Name", class="inputBox", required)
+        if (messagesInfo.lname.includes("notEmpty"))
+          label(style="color: red; font-weight: bold;", for="email") Please enter ypur last name.
+        h3 Surname
+        input(type="text", name="lname", value=userInfo.lname, placeholder="Last Name", class="inputBox", required)
+        if (messagesInfo.email.includes("newEmail"))
+          label(style="color: red; font-weight: bold;", for="email") An account already exists with this email address.
+        else if (messagesInfo.email.includes("validEmail"))
+          label(style="color: red; font-weight: bold;", for="email") Email address is not valid.
+        h3 Email Address
+        input(name="email", type="email", value=userInfo.email, placeholder="Email Address", class="inputBox", required)
+        if (messagesInfo.dob.includes("validAge"))
+          label(style="color: red; font-weight: bold;", for="email") You must be at least 18 years old to use this service.
+        h3 Date of Birth
+        input(name="dob", type="date", value=userInfo.dob, placeholder="Date of Birth", class="inputBox", required)
+        input(type="submit", class="button", value="Save Changes", style="margin-top: 1rem; margin-bottom: 2rem;")
+        
+      a(href="/forgot", class="button", style="padding: 1rem 0rem;") Change Password

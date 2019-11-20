@@ -478,28 +478,6 @@ async function GetListings(queryObject = null)
     }
   }
 
-  //The below code would be the checks for price, the issue is that there is so much variation on how the price comes in from the API that it is hard to design for, the API being scraped from is not exposing the raw floating point price. Only the string. This is a major hit to the functionality, but with not enough time to work around it, it must be excluded.
-  /*
-  if (queryObject.hasOwnProperty("minPrice"))
-  {
-    if (queryObject.minPrice > -1) {fixedQueryObject.minPrice = queryObject.minPrice;}
-  }
-  if (queryObject.hasOwnProperty("maxPrice"))
-  {
-    if (queryObject.maxPrice > -1) {fixedQueryObject.maxPrice = queryObject.maxPrice;}
-  }
-
-  if (fixedQueryObject.hasOwnProperty("minPrice") && fixedQueryObject.hasOwnProperty("maxPrice"))
-  {
-    if (fixedQueryObject.minPrice > fixedQueryObject.maxPrice)
-    {
-      var switcher = fixedQueryObject.minPrice;
-      fixedQueryObject.minPrice = fixedQueryObject.maxPrice;
-      fixedQueryObject.maxPrice = switcher;
-    }
-  }
-  */
-
   if (queryObject.hasOwnProperty("searchBy")) {fixedQueryObject.searchBy = queryObject.searchBy;}
   if (queryObject.hasOwnProperty("searchTerm")) {fixedQueryObject.searchTerm = queryObject.searchTerm;}
 

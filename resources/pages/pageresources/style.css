@@ -7,11 +7,37 @@ body, html {
 	overflow-x: hidden;
 }
 
+h1 {
+	font-size: 1.5rem;
+	font-weight: 500;
+	margin: 0;
+}
+
+h2 {
+	font-size: 1.3rem;
+	font-weight: 400;
+	margin-top: 0.5rem;
+}
+
+h3 {
+	font-size: 1.1rem;
+	font-weight: 300;
+	margin-top: 1.5rem;
+}
+
+#formHeading {
+	font-size: 1.3rem;
+	font-weight: 400;
+	margin-top: 0.5rem;
+	color: white;
+}
+
 .searchField {
 	background-color: rgba(150, 150, 150, 0.5);
 	padding: 2%;
 	border-radius: 5px;
 	color: white;
+	box-shadow: 0 1rem 2rem 0 rgba(0,0,0,0.2);
 }
 
 .searchHeading {
@@ -68,11 +94,27 @@ body, html {
   padding: 1rem 2rem;
 }
 
+.listingTile > a {
+	text-decoration: none;
+	color: rgb(50, 50, 50);
+}
+
+.listingPage {
+	padding: 3rem 2rem;
+	background-color: rgba(220, 220, 220, 0.3);
+}
+
 .header{
 	position: fixed;
 	top: 0;
 	z-index: 9999;
 	width: 100%;
+}
+
+input[type=date] {
+	color: grey;
+	font-family: sans-serif, Geneva, Tahoma;
+	text-transform: uppercase;
 }
 
 .navigation {
@@ -84,12 +126,12 @@ body, html {
 }
 
 .masterSearch {
-	min-height:3.75rem;
-	width: 100%;
-	padding: 0;
+	min-height: 4rem;
+	padding: 1.5rem 1.5rem;
 	margin: 0;
 	background-color: rgb(50,50,50);
 	border-bottom: .125rem solid rgb(228,48,48);
+	color: white;
 }
 
 .navigationProfileOption:hover {
@@ -202,27 +244,33 @@ body, html {
 	min-height: 100%;
 }
 
-.registerloginsection input{
+.inputBox {
 	width: 100%;
-  padding: 0rem 0rem;
-	font-size: 1.25rem;
-	padding: .5rem 0rem;
-  margin: 0rem 0;
+  font-size: 1.1rem;
   box-sizing: border-box;
-	position: relative;
-	top: 0;
-}
+	border-radius: 5px;
+	border: none;
+	padding: 0.5rem 0.9rem;
+	}
 
 .button {
   background-color: rgb(228,48,48);
   border: none;
   color: white;
-  padding: 15px 32px;
+  padding: 1rem 2rem;
 	border-radius: .25rem;
   text-align: center;
   text-decoration: none;
   display: inline-block;
   font-size: 1rem;
+	box-shadow: 0 1rem 2rem 0 rgba(0,0,0,0.2);
+	margin: 0;
+	width: 100%;
+}
+
+.button:hover {
+	box-shadow: 0 1.5rem 1.5rem 0 rgba(0,0,0,0.3);
+	background-color: rgb(255, 0, 5);
 }
 
 .registerloginsection label{
@@ -232,11 +280,13 @@ body, html {
 }
 
 .formbox {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 1rem;
-  font-size: 1.5rem;
+  background-color: rgba(150, 150, 150, 0.5);
+  border-radius: 5px;
+  font-size: 1rem;
 	text-align: left;
-	padding: 5% 2rem;
+	padding: 5% 1rem;
+	color: white;
+	box-shadow: 0 1rem 2rem 0 rgba(0,0,0,0.8);
 }
 
 .formboxDiv {
@@ -323,9 +373,7 @@ body, html {
 	}
 
 	.formbox {
-	  background-color: rgba(255, 255, 255, 0.8);
-	  border-radius: .5rem;
-	  font-size: 1.5rem;
+	  font-size: 1rem;
 		text-align: left;
 		padding: 1% 2rem;
 		margin: 5rem 0 ;
@@ -415,6 +463,20 @@ body, html {
 		display: inline-block;
 		text-align: center;
 	}
+
+	.listingTop {
+			display: grid;
+			grid-template-columns: 1;
+			grid-template-rows: 2 auto;
+	}
+
+	.listingImage {
+		grid-row-start: 1;
+	}
+
+	.listingDescription {
+		grid-row-start: 2;
+	}
 }
 
 @media screen and (min-width: 721px) {
@@ -460,6 +522,26 @@ body, html {
 		font-size: 1rem;
 		width: 15%;
 		margin-left: 4rem;
+	}
+
+	.indexButton:hover {
+		box-shadow: 0 1.5rem 1.5rem 0 rgba(0,0,0,0.3);
+		background-color: rgb(255, 0, 5);
+	}
+
+	.listingTop {
+			display: grid;
+			grid-template-columns: 45% 55%;
+			grid-template-rows: 1;
+	}
+
+	.listingImage {
+		grid-column-start: 2;
+	}
+
+	.listingDescription {
+		grid-column-start: 1;
+		margin-top: 40%; 
 	}
 }
 

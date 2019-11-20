@@ -185,22 +185,14 @@ async function ReadListings(queryObject = null)
       else if (queryObject.hasOwnProperty("maxBeds")) {conditionals.push("bed < " + queryObject.maxBeds.toString());}
     }
 
-    //The below code would be the checks for price, the issue is that there is so much variation on how the price comes in from the API that it is hard to design for, the API being scraped from is not exposing the raw floating point price. Only the string. This is a major hit to the functionality, but with not enough time to work around it, it must be excluded.
-    /*
-    if (queryObject.hasOwnProperty("minPrice") && queryObject.hasOwnProperty("maxPrice")) {conditionals.push("numericPrice BETWEEN " + queryObject.minPrice.toString() + " AND " + queryObject.maxPrice.toString());}
-    else
-    {
-      if (queryObject.hasOwnProperty("minPrice")) {conditionals.push("numericPrice > " + queryObject.minPrice.toString());}
-      else if (queryObject.hasOwnProperty("maxPrice")) {conditionals.push("numericPrice < " + queryObject.maxPrice.toString());}
-    }
-    */
+    //Price goes here if SQL price gets fixed
 
     if (queryObject.hasOwnProperty("searchBy") && queryObject.hasOwnProperty("searchTerm"))
     {
       if (queryObject.searchBy == "suburb") {conditionals.push("LOWER(suburb) = '" + queryObject.searchTerm.toString().toLowerCase()+"'");}
-      else if (queryObject.searchBy == "postcode") {conditionals.push("postcode = " + queryObject.searchTerm);}
-      else if (queryObject.searchBy == "state") {conditionals.push("LOWER(state) = '" + queryObject.searchTerm.toString().toLowerCase()+"'");}
-      //else if (queryObject.searchBy == "region") {} //Cant be used because region was not obtainable from db in time
+      else if (queryObject.searchBy == "postcode") {conditionals.push("postcode = " + queryObject.searchTerm.toString());}
+      //else if (queryObject.searchBy == "state") {} //Cant be used because state was ommitted from the DB
+      //else if (queryObject.searchBy == "region") {} //Cant be used because region was not obtainable from db
     }
 
     //After all of that, run a loop that concats all these conditional strings into a single one.

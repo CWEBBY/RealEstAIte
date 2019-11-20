@@ -1,27 +1,28 @@
 extends master
 
 block pageContent
-		div(class="registerloginsection", style="grid-template-columns: auto 50% auto;")
-			div(class="formbox", style="background-color: rgba(0,0,0,0)")
-			form(method="post", class="formbox")
-				h3 Verify your account to sign in
-				p We sent you an email with a 4 digit verification code, sign in with your email and password with that code to verify your account.
-				div(class="formboxDiv")
-					if (messagesInfo.emailNotUsed)
-						label(style="color: red; font-weight: bold;", for="givenName") No account found by that email address
-					else if (messagesInfo.emailNotValid)
-						label(style="color: red; font-weight: bold;", for="givenName") Invalid email address
-					input(name="email", id="email", type="email", placeholder="Email Address", required)
-				div(class="formboxDiv")
-					if (messagesInfo.passwordNotValid)
-						label(style="color: red; font-weight: bold;", for="givenName") Invalid Password
-					input(name="password", type="password", placeholder="Password", required)
-				div(class="formboxDiv")
-					if (messagesInfo.codeNotCorrect)
-						label(style="color: red; font-weight: bold;", for="givenName") This is not the correct code
-					input(name="code", type="text", placeholder="4 Digit Verification Code", required)
-				div(style="text-align: center; ")
-					input(type="submit", formaction="/verify", class="button", value="Log in", style="width: 90%; text-align")
-				a(href="/reverify", style="text-align: center") 
-					p(style="font-size: 1rem; margin-top: 0") Didn't receive a code? Click to resend one.
-			div(class="formbox", style="background-color: rgba(0,0,0,0)")
+		div(class="banner")
+			div(class="searchField")
+				form(method="post")
+					h1 Verify your Account to Sign In
+					br
+					p We sent you an email which included a 4 digit verification code, sign in with your email address and password with that code to verify your account.
+					div(class="formboxDiv")
+						if (messagesInfo.emailNotUsed)
+							label(style="color: red; font-weight: bold;", for="givenName") No account was found with that email address.
+						else if (messagesInfo.emailNotValid)
+							label(style="color: red; font-weight: bold;", for="givenName") Invalid email address
+						input(name="email", id="email", type="email", placeholder="Email Address", class="inputBox", required)
+					div(class="formboxDiv")
+						if (messagesInfo.passwordNotValid)
+							label(style="color: red; font-weight: bold;", for="givenName") Invalid Password
+						input(name="password", type="password", placeholder="Password", class="inputBox", required)
+					div(class="formboxDiv")
+						if (messagesInfo.codeNotCorrect)
+							label(style="color: red; font-weight: bold;", for="givenName") This is not the correct code
+						input(name="code", type="text", placeholder="4 Digit Verification Code", class="inputBox", style="margin-bottom: 1rem;", required)
+					div(style="text-align: center; ")
+						input(type="submit", formaction="/verify", class="button", value="Log In", style="margin-bottom: 1rem;")
+						br
+						a(href="/reverify", style="color: white; text-decoration: none;") Didn't receive a code? 
+						a(href="/reverify", style="color: red;") Click here to send another.

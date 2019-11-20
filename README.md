@@ -19,13 +19,13 @@ An N-Tier, SQL and NodeJS real estate website.
 --Google Chrome, v78.  
 --NodeJS, v12.13  
 ---Dependencies:   
-----"bluebird, v3.7.1"  
-----"body-parser, v1.19.0"  
-----"express, v4.17.1"  
-----"express-session, v1.17.0"  
-----"mysql2, v2.0.0"  
-----"nodemailer, v6.3.1"  
-----"pug, v2.0.4"  
+----"bluebird, v3.7.1" by npm user   
+----"body-parser, v1.19.0" by npm user   
+----"express, v4.17.1" by npm user   
+----"express-session, v1.17.0" by npm user   
+----"mysql2, v2.0.0" by npm user   
+----"nodemailer, v6.3.1" by npm user   
+----"pug, v2.0.4" by npm user   
 --MySQL Workbench v8.  
 
 Created by CW, EG, EM, VD, MMA & LM.  
